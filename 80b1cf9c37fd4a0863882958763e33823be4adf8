@@ -1,0 +1,7 @@
+Task 2.5: Trim docker-compose.yml
+
+Removed the postgres service and postgres-data volume, leaving the file structurally valid with zero services (services: {}) until US-7.1 adds a Kafka broker.
+
+Verified: docker compose config still parses (name: notification-service, services: {}).
+
+Files: docker-compose.yml
