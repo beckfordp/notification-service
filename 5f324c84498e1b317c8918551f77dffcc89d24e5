@@ -1,0 +1,12 @@
+Phase 1 checkpoint: Store-less readiness check
+
+Automated tests: sbt scalafmtCheck test - 51 passed, 0 failed.
+
+Manual verification: ./scripts/verify-health-ready.sh
+1. docker compose up -d (Postgres - still required to boot the service at this point; full removal is Phase 2)
+2. sbt run in background, wait for /health == 200
+3. GET /health -> 200 (OK)
+4. GET /health/ready -> 200, no longer pinging NotificationStore (OK)
+All checks passed - see script output.
+
+Confirmed via committed script per this project's prompting-off mode (.claude/prompt-off), in place of an interactive manual-verification walkthrough.
