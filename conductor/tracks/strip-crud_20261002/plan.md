@@ -12,7 +12,7 @@
   - [x] Refactor (optional): simplify the now-trivial `readyServerEndpoint` if useful
 - [ ] Task: Conductor - User Manual Verification 'Phase 1: Store-less readiness check' (Protocol in workflow.md)
 
-## Phase 2: Remove Postgres/CRUD scaffold
+## Phase 2: Remove Postgres/CRUD scaffold [checkpoint: 1c807fe]
 - [x] Task 2.1: Trim `NotificationServiceConfig` (TDD) [933021b]
   - [x] Red: update `NotificationServiceConfigSuite` to load config with no
         `postgres` block and assert the config type has no `postgres`/
@@ -56,4 +56,4 @@
     CRUD curl examples
   - Describe the service as a to-be-built Kafka consumer, pointing at US-7.1 for the
     real implementation
-- [ ] Task: Conductor - User Manual Verification 'Phase 2: Remove Postgres/CRUD scaffold' (Protocol in workflow.md)
+- [x] Task: Conductor - User Manual Verification 'Phase 2: Remove Postgres/CRUD scaffold' (Protocol in workflow.md) [1c807fe]
