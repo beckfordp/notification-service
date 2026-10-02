@@ -4,7 +4,6 @@ import cats.effect.{IO, IOApp}
 import com.comcast.ip4s._
 import org.http4s.ember.server.EmberServerBuilder
 import org.http4s.implicits._
-import purerest.docs.Docs
 import purerest.logging.Logging
 import purerest.metrics.{Metrics, ServerMetrics}
 import purerest.tracing.{ServerTracing, Tracing}
@@ -19,7 +18,6 @@ object Main extends IOApp.Simple {
           s"Invalid notification-service port: ${config.port}"
         )
       )
-      _ <- Migrations.run[IO](config.postgres)
       _ <- Tracing.console[IO](config.serviceName).use { tracer =>
         Metrics.oteljava[IO](config.serviceName, config.metricsPort).use {
           meter =>
@@ -31,37 +29,16 @@ object Main extends IOApp.Simple {
                   "metrics_port" -> config.metricsPort.toString
                 )
               )("notification-service starting")
-              _ <- NotificationStore.postgres[IO](config.postgres, meter).use {
-                store =>
-                  val docsRoutes = Docs.routes[IO](
-                    "Notification Service",
-                    "1.0",
-                    List(
-                      NotificationRoutes.serverEndpoint[IO](store, logger),
-                      NotificationRoutes
-                        .getNotificationServerEndpoint[IO](store, logger),
-                      NotificationRoutes
-                        .updateNotificationServerEndpoint[IO](store, logger),
-                      NotificationRoutes
-                        .replaceNotificationServerEndpoint[IO](store, logger),
-                      NotificationRoutes
-                        .deleteNotificationServerEndpoint[IO](store, logger),
-                      HealthRoutes.healthServerEndpoint[IO],
-                      HealthRoutes.readyServerEndpoint[IO]
-                    )
-                  )
-                  val tracedRoutes =
-                    ServerTracing.middleware(tracer)(docsRoutes)
-                  val routes =
-                    ServerMetrics.middleware[IO](meter)(tracedRoutes)
-                  EmberServerBuilder
-                    .default[IO]
-                    .withHost(host"0.0.0.0")
-                    .withPort(port)
-                    .withHttpApp(routes.orNotFound)
-                    .build
-                    .useForever
-              }
+              healthRoutes = HealthRoutes.routes[IO]
+              tracedRoutes = ServerTracing.middleware(tracer)(healthRoutes)
+              routes = ServerMetrics.middleware[IO](meter)(tracedRoutes)
+              _ <- EmberServerBuilder
+                .default[IO]
+                .withHost(host"0.0.0.0")
+                .withPort(port)
+                .withHttpApp(routes.orNotFound)
+                .build
+                .useForever
             } yield ()
         }
       }
