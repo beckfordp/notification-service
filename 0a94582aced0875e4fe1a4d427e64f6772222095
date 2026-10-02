@@ -1,0 +1,5 @@
+Task 2.6: Update README.md
+
+Rewrote Quickstart to drop the Postgres start step and GITHUB_TOKEN-for-Postgres framing (GITHUB_TOKEN is still needed, just for purerestlib resolution, not Postgres), removed the /notifications CRUD curl examples, replaced the 'One database per service' section with a 'Current shape' section describing this as a stripped-down Kafka-consumer-shell pointing at US-7.1 for the real implementation, and updated Testing to note no Postgres/Testcontainers is needed yet.
+
+Files: README.md
