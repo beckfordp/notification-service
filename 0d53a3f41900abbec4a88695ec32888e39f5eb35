@@ -1,0 +1,8 @@
+Task 1.1: Update readiness behavior (TDD)
+
+Red: rewrote HealthRoutesSuite to drop the readyStore/notReadyStore fixtures and call HealthRoutes.routes[IO] with no store arg; confirmed it failed to compile against the old store-requiring signature (orNotFound not a member of NotificationStore[IO] => HttpRoutes[IO]).
+Green: changed HealthRoutes.readyServerEndpoint to drop its NotificationStore parameter, return 200 unconditionally via serverLogicSuccess, and dropped the now-unused errorOut(503) wiring; updated routes[F] to match; updated Main.scala's single call site accordingly.
+
+Files: src/main/scala/notificationservice/HealthRoutes.scala, src/main/scala/notificationservice/Main.scala, src/test/scala/notificationservice/HealthRoutesSuite.scala
+
+Why: /health/ready has no dependency left to check once the Postgres/CRUD layer is gone (this track); US-7.1 can wire a real Kafka-consumer-health check into it later.
