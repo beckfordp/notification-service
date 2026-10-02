@@ -1,15 +1,15 @@
 # Plan: Strip Postgres/CRUD layer down to a bare Kafka consumer shell
 
 ## Phase 1: Store-less readiness check
-- [ ] Task 1.1: Update readiness behavior (TDD)
-  - [ ] Red: update `HealthRoutesSuite` to exercise a no-arg
+- [x] Task 1.1: Update readiness behavior (TDD) [0d53a3f]
+  - [x] Red: update `HealthRoutesSuite` to exercise a no-arg
         `HealthRoutes.readyServerEndpoint[F]` that returns 200 with no store passed
         in; run `sbt test`, confirm it fails against the current store-requiring
         signature
-  - [ ] Green: change `HealthRoutes.scala`'s `readyServerEndpoint` to drop the
+  - [x] Green: change `HealthRoutes.scala`'s `readyServerEndpoint` to drop the
         `NotificationStore` parameter and return `200` unconditionally; update its
         call site in `routes`; run `sbt test`, confirm pass
-  - [ ] Refactor (optional): simplify the now-trivial `readyServerEndpoint` if useful
+  - [x] Refactor (optional): simplify the now-trivial `readyServerEndpoint` if useful
 - [ ] Task: Conductor - User Manual Verification 'Phase 1: Store-less readiness check' (Protocol in workflow.md)
 
 ## Phase 2: Remove Postgres/CRUD scaffold
