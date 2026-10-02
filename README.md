@@ -1,14 +1,22 @@
 # notification-service
 
-A production-quality microservice built on
-[purerest](https://github.com/beckfordp/purerest), generated from the
-[pure-service-generator](https://github.com/beckfordp/pure-service-generator) giter8 template.
-Its own `build.sbt` resolves `purerestlib` as a published GitHub Packages dependency.
+A microservice built on [purerest](https://github.com/beckfordp/purerest), generated
+from the [pure-service-generator](https://github.com/beckfordp/pure-service-generator)
+giter8 template. Its own `build.sbt` resolves `purerestlib` as a published GitHub
+Packages dependency.
+
+## Current shape
+
+This service's generated Postgres/CRUD scaffold has been stripped down (see
+`conductor/tracks/strip-crud_20261002/`) to match its intended role per
+[`gluon/docs/user-stories.md`](../../docs/user-stories.md) US-7: a **Kafka consumer
+only, no database**. Right now it serves just health checks; the real consumer —
+subscribing to `order.status-changed` and sending the matching email per status — is
+**US-7.1**, a separate, not-yet-built track (`gluon/backlogs/notification-service.md`).
 
 ## Prerequisites
 
 - sbt / JDK 21 (for building and running)
-- Docker Desktop (or another Docker engine) with Docker Compose v2
 - A GitHub [personal access token](https://github.com/settings/tokens) with `read:packages`
   scope, exported as `GITHUB_TOKEN` (and `GITHUB_ACTOR` set to your GitHub username) — needed to
   resolve `purerestlib` from GitHub Packages. GitHub Packages requires authentication to *read*
@@ -20,39 +28,19 @@ Its own `build.sbt` resolves `purerestlib` as a published GitHub Packages depend
 export GITHUB_ACTOR=<your-github-username>
 export GITHUB_TOKEN=<your-PAT-with-read:packages>
 
-docker compose up -d   # starts Postgres
-sbt run                # runs migrations, then starts the service on :8080
+sbt run   # starts the service on :8080 (no other local infra needed yet)
 ```
 
 Then, in another terminal:
 
 ```
-# Create a notification
-curl -X POST http://localhost:8080/notifications \
-  -H "Content-Type: application/json" -d '{"item":"widget","quantity":3}'
-
-# Read it back (substitute the id from the response above)
-curl http://localhost:8080/notifications/<id>
-
-# Partially update it (quantity/status)
-curl -X PATCH http://localhost:8080/notifications/<id> \
-  -H "Content-Type: application/json" -d '{"quantity":5,"status":"shipped"}'
-
-# Or fully replace it (same required fields as PATCH — this resource has no
-# other client-writable ones — but PUT is idempotent full-replace semantics)
-curl -X PUT http://localhost:8080/notifications/<id> \
-  -H "Content-Type: application/json" -d '{"quantity":5,"status":"shipped"}'
-
-# Delete it
-curl -X DELETE http://localhost:8080/notifications/<id>
-
 # Liveness / readiness
 curl http://localhost:8080/health
 curl http://localhost:8080/health/ready
 ```
 
-Swagger UI (generated from the same tapir endpoint definitions as the real routes — see
-`purerest.docs.Docs`) is browsable at **http://localhost:8080/docs**.
+`docker-compose.yml` currently declares no services — a Kafka broker will be added
+there once US-7.1 builds the real consumer.
 
 ## Development guidelines
 
@@ -66,18 +54,8 @@ avoid) — before adding new code.
 sbt scalafmtCheck test
 ```
 
-Unit tests use an in-memory `NotificationStore`; Postgres-backed tests spin up a
-real, ephemeral container via Testcontainers — no local Postgres or manual setup needed to run
-`sbt test`.
-
-## One database per service
-
-This service owns a single dedicated Postgres database, named after its domain: a database named
-`notification` (singular), with a `notification` table (quoted throughout in SQL — several
-plausible domain names, e.g. "user"/"group"/"order", are reserved PostgreSQL keywords). REST
-paths stay pluralized (`/notifications`, `/notifications/{id}`) per ordinary
-resource-collection convention; only the database/table naming reflects the one-db-per-service
-rule. No service reads or writes another service's database directly.
+Unit tests only for now (no Postgres/Testcontainers needed) — a Testcontainers Kafka
+suite will be added alongside US-7.1's consumer.
 
 ## Calling other services with resilience
 
