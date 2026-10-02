@@ -2,7 +2,7 @@
 
 This file tracks all major tracks for the project.
 
-- [~] **Track: Generate notification-service, strip Postgres/CRUD layer down to a bare Kafka consumer (infra)**
+- [x] **Track: Generate notification-service, strip Postgres/CRUD layer down to a bare Kafka consumer (infra)**
   *Link: [./tracks/strip-crud_20261002/](./tracks/strip-crud_20261002/)*
 
 ---
