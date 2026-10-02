@@ -1,0 +1,11 @@
+Tasks 2.1-2.3: Trim NotificationServiceConfig; rewire Main.scala; delete the dead Postgres/CRUD files
+
+Combined into one commit: removing PostgresConfig/postgres from NotificationServiceConfig immediately breaks Migrations.scala and NotificationStore.scala (both reference PostgresConfig), and Main.scala's CRUD wiring depends on NotificationStore.postgres/NotificationRoutes - these three steps can't produce an independently-compiling intermediate state, so they're one atomic change.
+
+- Red/Green (Task 2.1): rewrote NotificationServiceConfigSuite with no postgres block; confirmed it failed to compile against the old 4-field case class; removed PostgresConfig and the postgres field from NotificationServiceConfig.scala and the postgres { ... } block from application.conf.
+- Task 2.2: rewired Main.scala - dropped Migrations.run, NotificationStore.postgres, all NotificationRoutes.* endpoints and the Docs wrapper (nothing left to document); serves only HealthRoutes now.
+- Task 2.3: deleted NotificationStore.scala, NotificationRoutes.scala, Migrations.scala, NotificationError.scala, the V1 Flyway migration, and the now-obsolete suites (NotificationStoreSuite, NotificationStorePostgresSuite, MigrationsSuite, NotificationRoutesSuite, NotificationDocsSuite). Also removed src/test/resources/docker-java.properties - a testcontainers/Docker-API-negotiation workaround that only NotificationStorePostgresSuite needed.
+
+Verified: sbt scalafmtCheck test - 7 passed, 0 failed.
+
+Files: src/main/scala/notificationservice/{NotificationServiceConfig,Main}.scala, src/main/resources/application.conf, src/test/scala/notificationservice/NotificationServiceConfigSuite.scala, plus the deletions listed above.
