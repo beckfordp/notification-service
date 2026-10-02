@@ -1,6 +1,6 @@
 # Plan: Strip Postgres/CRUD layer down to a bare Kafka consumer shell
 
-## Phase 1: Store-less readiness check
+## Phase 1: Store-less readiness check [checkpoint: 5f324c8]
 - [x] Task 1.1: Update readiness behavior (TDD) [0d53a3f]
   - [x] Red: update `HealthRoutesSuite` to exercise a no-arg
         `HealthRoutes.readyServerEndpoint[F]` that returns 200 with no store passed
