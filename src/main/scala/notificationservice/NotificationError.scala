@@ -1,0 +1,5 @@
+package notificationservice
+
+sealed trait NotificationError
+
+case object NotificationNotFound extends NotificationError
