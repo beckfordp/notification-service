@@ -1,0 +1,7 @@
+Task 2.4: Trim build.sbt
+
+Removed skunk-core, flyway-core, flyway-database-postgresql, postgresql (Runtime JDBC), and testcontainers-scala-postgresql. Also dropped the now-unused otel4s-core* dependencyOverrides block - it existed solely to resolve Skunk's own otel4s tracing-integration version conflict (0.16.0 vs purerestlib's 1.1.0); with skunk-core gone, nothing else in the dependency graph pulls a conflicting otel4s version. Also removed the now-unused testcontainersScalaVersion val (the Kafka testcontainers module hasn't been added yet - that's US-7.1's job).
+
+Verified: sbt update compile resolves cleanly; sbt scalafmtCheck test still 7 passed, 0 failed.
+
+Files: build.sbt
