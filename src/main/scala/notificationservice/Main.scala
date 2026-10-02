@@ -47,7 +47,7 @@ object Main extends IOApp.Simple {
                       NotificationRoutes
                         .deleteNotificationServerEndpoint[IO](store, logger),
                       HealthRoutes.healthServerEndpoint[IO],
-                      HealthRoutes.readyServerEndpoint[IO](store)
+                      HealthRoutes.readyServerEndpoint[IO]
                     )
                   )
                   val tracedRoutes =

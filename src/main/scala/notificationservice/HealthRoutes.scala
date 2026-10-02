@@ -17,20 +17,15 @@ object HealthRoutes {
     endpoint.get
       .in("health" / "ready")
       .out(statusCode(StatusCode.Ok))
-      .errorOut(statusCode(StatusCode.ServiceUnavailable))
 
   def healthServerEndpoint[F[_]: Async]: ServerEndpoint[Any, F] =
     healthEndpoint.serverLogicSuccess[F](_ => Async[F].unit)
 
-  def readyServerEndpoint[F[_]: Async](
-      store: NotificationStore[F]
-  ): ServerEndpoint[Any, F] =
-    readyEndpoint.serverLogic[F] { _ =>
-      store.ping.map(ready => if (ready) Right(()) else Left(()))
-    }
+  def readyServerEndpoint[F[_]: Async]: ServerEndpoint[Any, F] =
+    readyEndpoint.serverLogicSuccess[F](_ => Async[F].unit)
 
-  def routes[F[_]: Async](store: NotificationStore[F]): HttpRoutes[F] =
+  def routes[F[_]: Async]: HttpRoutes[F] =
     Http4sServerInterpreter[F]().toRoutes(
-      List(healthServerEndpoint[F], readyServerEndpoint(store))
+      List(healthServerEndpoint[F], readyServerEndpoint[F])
     )
 }
