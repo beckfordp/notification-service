@@ -1,0 +1,14 @@
+Phase 2 checkpoint: Remove Postgres/CRUD scaffold
+
+Automated tests: sbt scalafmtCheck test - 7 passed, 0 failed.
+
+Manual verification: ./scripts/verify-crud-removed.sh
+1. docker-compose.yml declares zero services (Postgres fully removed)
+2. sbt run in background, no Postgres running anywhere, wait for /health == 200
+3. GET /health -> 200 (OK)
+4. GET /health/ready -> 200 (OK, unconditional per Phase 1)
+5. POST /notifications -> 404 (CRUD route gone)
+6. GET /docs -> 404 (Docs wrapper removed, nothing left to document)
+All checks passed - see script output.
+
+Confirmed via committed script per this project's prompting-off mode (.claude/prompt-off), in place of an interactive manual-verification walkthrough.
