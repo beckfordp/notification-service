@@ -6,29 +6,21 @@
 
 ## Effects / HTTP
 - Cats Effect 3.7.0
-- http4s 0.23.37 (ember-server, http4s-dsl, http4s-circe) — currently backs
-  the generated CRUD routes; only health-check routes are expected to
-  survive once the Postgres/CRUD layer is stripped (see
-  `conductor/product.md`)
+- http4s 0.23.37 (ember-server, http4s-dsl, http4s-circe) — backs the two
+  health-check routes only (the CRUD routes were removed in
+  `conductor/tracks/strip-crud_20261002/`)
 - circe 0.14.16 (circe-generic, circe-parser)
 
 ## API layer
-- tapir 1.11.25 (tapir-core, tapir-json-circe, tapir-http4s-server) — route
-  definitions + generated Swagger/OpenAPI docs (`purerest.docs.Docs`).
-  Scoped down to whatever routes remain (likely just `/health`) once the
-  CRUD surface is removed
+- tapir 1.11.25 (tapir-core, tapir-json-circe, tapir-http4s-server) —
+  defines the two health endpoints only. No longer wraps
+  `purerest.docs.Docs` (removed along with the CRUD surface — nothing left
+  to document); `/docs` returns 404 until a new route exists worth
+  documenting
 
-## Persistence (generated, slated for removal)
-- skunk-core 1.0.0 — pure-FP, non-blocking Postgres access
-- Flyway 11.8.2 (+ flyway-database-postgresql) — schema migrations on
-  startup
-- postgresql JDBC 42.7.13 — Flyway-only (runtime scope)
-- pureconfig 0.17.10 — typed config from `application.conf`
-
-These four are all generator defaults for a standard CRUD service.
-`gluon/docs/system-design.md` describes this service's *intended* end state
-as having no DB module — these stay in `build.sbt` only until the backlog's
-"strip Postgres/CRUD layer down to a bare Kafka consumer" item is done.
+## Config
+- pureconfig 0.17.10 — typed config from `application.conf` (now just
+  port/metrics-port/service-name, since `PostgresConfig` was removed)
 
 ## Shared platform library
 - `purerestlib` 0.1.0 (`io.github.beckfordp`) — tracing, structured logging,
@@ -42,17 +34,16 @@ as having no DB module — these stay in `build.sbt` only until the backlog's
 ## Testing
 - munit 1.3.6 + munit-cats-effect 2.2.1
 - log4cats-testing 2.8.0 — assert on structured log output
-- testcontainers-scala 0.43.6 (postgresql + munit modules currently in
-  `build.sbt`; postgresql module to be dropped, kafka module to be added —
-  see "Not yet in build.sbt" below)
 - scalafmt (default Scala 3 style) — `sbt scalafmtCheck test` run in CI
+- No testcontainers module currently in `build.sbt` (the postgresql +
+  munit modules were dropped along with the CRUD layer) — a kafka module
+  will be added for US-7.1's consumer, see "Not yet in build.sbt" below
 
 ## Packaging / local deploy
 - sbt-native-packager (`JavaAppPackaging`, `DockerPlugin`)
 - Docker image: `eclipse-temurin:21-jre`
-- Docker Compose — currently starts Postgres only (`docker-compose.yml`);
-  needs a Kafka broker once the consumer is built, Postgres dropped once
-  the CRUD layer is stripped
+- Docker Compose — currently declares zero services (`docker-compose.yml`);
+  a Kafka broker will be added once US-7.1 builds the consumer
 
 ## Not yet in build.sbt (needed for US-7.1, per system-design.md's services table)
 - **fs2-kafka** — consumer side only (no publish side for this service);

@@ -20,29 +20,23 @@ Generated via `pure-service-generator` (giter8 template over `purerest`), no
 field-spec applied (`gluon/specs/notification.yaml` doesn't exist — none was
 needed, there's no CRUD domain entity here).
 
-## ⚠️ Generated state doesn't match the intended shape yet
-`gluon/backlogs/notification-service.md`'s first line is "Generate
-notification-service, strip Postgres/CRUD layer down to a bare Kafka
-consumer (infra)" — **the generate half is done, the strip half is not**.
-As generated, this repo still carries the full CRUD scaffold with no
-field-spec applied:
-- `Notification` (`NotificationStore.scala`) has only `id`/`createdAt`/
-  `updatedAt` — every codegen placeholder (`CREATE_PARAMS`,
-  `CONSTRUCT_ARGS`, `SQL_INSERT_COLUMNS`, etc.) is still a literal, empty
-  `/* codegen:fields:... */` comment, never filled in.
-- `NotificationRoutes`/`NotificationStore`/`Migrations` still wire a full
-  Postgres CRUD API (`POST`/`GET`/`PATCH`/`PUT`/`DELETE /notifications`),
-  and `build.sbt` still carries skunk/Flyway/postgresql-jdbc.
-- `gluon/docs/system-design.md`'s services table already describes the
-  *intended* end state ("new (generator, no DB module)") — that line is
-  aspirational, not a description of what's in this repo today.
+## Current state
+As of `conductor/tracks/strip-crud_20261002/` (complete), the generated
+Postgres/CRUD scaffold has been removed: `NotificationStore`/
+`NotificationRoutes`/`Migrations`/`NotificationError` are gone, `build.sbt`
+no longer carries skunk/Flyway/postgresql-jdbc, and `docker-compose.yml`
+declares zero services. The service now serves only `/health` and
+`/health/ready` (unconditional 200, no store to ping).
+`gluon/docs/system-design.md`'s "new (generator, no DB module)"
+services-table line is now accurate (it was aspirational before this
+track).
 
-Stripping this down (dropping `NotificationStore`/`NotificationRoutes`/
-`Migrations`/the Postgres deps, replacing the CRUD surface with a Kafka
-consumer) is the first track to run here — see `conductor/tracks.md`.
+The next track, US-7.1, builds the real `order.status-changed` Kafka
+consumer on top of this shell.
 
 ## Domain model
-No domain entity in the CRUD sense. Once stripped (above), the only "model"
+No domain entity in the CRUD sense — this service has none now that the
+scaffold is stripped (see "Current state" above). The only "model"
 is the consumed event shape — `order.status-changed`, pinned in
 `gluon/docs/system-design.md`'s "Payload contracts":
 ```json
@@ -75,8 +69,8 @@ integrating a real email service.
 - Consumes: `order.status-changed`
 
 ## Out of scope for this service
-- Any HTTP write API / CRUD persistence (the generated scaffold has one;
-  it's being stripped — see the warning above)
+- Any HTTP write API / CRUD persistence (removed — see "Current state"
+  above; not being reintroduced)
 - A real email/notification provider (not decided yet — stub only, per
   PLAN.md Phase 5's exit criteria)
 - The cancel-order flow (US-9, separate epic) and stale-pending-order
