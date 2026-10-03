@@ -20,14 +20,14 @@
 - [x] Task: Conductor - User Manual Verification 'Phase 1: Domain model + EmailClient stub' (Protocol in workflow.md) [781c050]
 
 ## Phase 2: Kafka infra
-- [ ] Task 2.1: `build.sbt` — add `fs2-kafka` 3.6.0 and `testcontainers-scala-kafka`
-      (mirroring payment-service's exact versions/deps)
-- [ ] Task 2.2: `docker-compose.yml` — add a single-node KRaft Kafka broker, copied
-      verbatim from payment-service's `apache/kafka:3.8.0` service definition
-- [ ] Task 2.3: `NotificationServiceConfig` — add `KafkaConfig(bootstrapServers: String)` (TDD)
-  - [ ] Red: update `NotificationServiceConfigSuite` to expect a `kafka` block;
+- [x] Task 2.1: `build.sbt` — add `fs2-kafka` 3.6.0 and `testcontainers-scala-kafka`
+      (mirroring payment-service's exact versions/deps) [97defed]
+- [x] Task 2.2: `docker-compose.yml` — add a single-node KRaft Kafka broker, copied
+      verbatim from payment-service's `apache/kafka:3.8.0` service definition [d79188a]
+- [x] Task 2.3: `NotificationServiceConfig` — add `KafkaConfig(bootstrapServers: String)` (TDD) [713294e]
+  - [x] Red: update `NotificationServiceConfigSuite` to expect a `kafka` block;
         confirm it fails against the current 3-field case class
-  - [ ] Green: add `KafkaConfig`/the `kafka` field, and the
+  - [x] Green: add `KafkaConfig`/the `kafka` field, and the
         `kafka { bootstrap-servers = ... }` block in `application.conf`. Confirm
         pass.
 - [ ] Task: Conductor - User Manual Verification 'Phase 2: Kafka infra' (Protocol in workflow.md)
