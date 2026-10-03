@@ -1,6 +1,6 @@
 # Plan: US-7.1 — consume order.status-changed, send the matching email per status
 
-## Phase 1: Domain model + EmailClient stub
+## Phase 1: Domain model + EmailClient stub [checkpoint: 781c050]
 - [x] Task 1.1: `OrderStatusChanged` enum + event codec (TDD) [751c0ca]
   - [x] Red: `OrderStatusChangedEventSuite` — decode each of the 3 pinned wire
         strings (`reservation_failed`/`confirmed`/`payment_failed`) correctly;
@@ -17,7 +17,7 @@
         Confirm it fails (type doesn't exist).
   - [x] Green: implement `EmailClient.scala` (trait + `logging` constructor).
         Confirm pass.
-- [ ] Task: Conductor - User Manual Verification 'Phase 1: Domain model + EmailClient stub' (Protocol in workflow.md)
+- [x] Task: Conductor - User Manual Verification 'Phase 1: Domain model + EmailClient stub' (Protocol in workflow.md) [781c050]
 
 ## Phase 2: Kafka infra
 - [ ] Task 2.1: `build.sbt` — add `fs2-kafka` 3.6.0 and `testcontainers-scala-kafka`
