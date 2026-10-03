@@ -7,7 +7,9 @@ val munitVersion = "1.3.6"
 val munitCatsEffectVersion = "2.2.1"
 val log4catsVersion = "2.8.0"
 val tapirVersion = "1.11.25"
+val fs2KafkaVersion = "3.6.0"
 val pureconfigVersion = "0.17.10"
+val testcontainersScalaVersion = "0.43.6"
 // Pinned to match the purerestlib version this service is built against — see
 // README's "Consuming purerest as a dependency" section.
 val purerestlibVersion = "0.1.0"
@@ -48,12 +50,19 @@ lazy val root = project
       "com.softwaremill.sttp.tapir" %% "tapir-core" % tapirVersion,
       "com.softwaremill.sttp.tapir" %% "tapir-json-circe" % tapirVersion,
       "com.softwaremill.sttp.tapir" %% "tapir-http4s-server" % tapirVersion,
+      // fs2-kafka: pure-FP, FS2-native Kafka consumer (US-7.1) - subscribes to
+      // order.status-changed.
+      "com.github.fd4s" %% "fs2-kafka" % fs2KafkaVersion,
       // pureconfig: loads application.conf into typed config case classes.
       "com.github.pureconfig" %% "pureconfig-core" % pureconfigVersion,
       // munit: test framework used across this project (Scala-native, no JUnit dependency).
       "org.scalameta" %% "munit" % munitVersion % Test,
       // munit-cats-effect: lets test bodies return IO[Unit] and run under munit directly.
       "org.typelevel" %% "munit-cats-effect" % munitCatsEffectVersion % Test,
+      // testcontainers-scala: spins up a real, ephemeral Kafka broker for the
+      // consumer's own integration tests.
+      "com.dimafeng" %% "testcontainers-scala-kafka" % testcontainersScalaVersion % Test,
+      "com.dimafeng" %% "testcontainers-scala-munit" % testcontainersScalaVersion % Test,
       // log4cats-testing: purerestlib keeps this Test-scoped (doesn't propagate to
       // consumers), so this service declares its own copy to assert on log output
       // (StructuredTestingLogger) in its own tests.
