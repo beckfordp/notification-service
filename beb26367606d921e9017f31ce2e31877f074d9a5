@@ -1,0 +1,8 @@
+Task 1.2: EmailClient[F] stub (TDD)
+
+Red: wrote EmailClientSuite - EmailClient.logging(logger).send(...) should log an INFO line whose context carries 'to' and 'subject'; confirmed it failed to compile (type didn't exist).
+Green: implemented EmailClient.scala - a small algebra (send(to, subject, body): F[Unit]) with one constructor, logging[F], that logs a structured line (to/subject/body) instead of calling a real provider. to is customerId (a bare string - no user-service/email-address field exists in Gluon yet), not a real email address; noted in the file's own doc comment.
+
+Verified: sbt scalafmtCheck test - 13 passed, 0 failed.
+
+Files: src/main/scala/notificationservice/EmailClient.scala, src/test/scala/notificationservice/EmailClientSuite.scala
