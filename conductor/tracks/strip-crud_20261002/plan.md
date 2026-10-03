@@ -57,3 +57,6 @@
   - Describe the service as a to-be-built Kafka consumer, pointing at US-7.1 for the
     real implementation
 - [x] Task: Conductor - User Manual Verification 'Phase 2: Remove Postgres/CRUD scaffold' (Protocol in workflow.md) [1c807fe]
+
+## Phase: Review Fixes
+- [x] Task: Apply review suggestions 9f2e7fd
