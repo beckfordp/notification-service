@@ -1,0 +1,10 @@
+Task 3.1: Consumer happy path (TDD, Testcontainers Kafka)
+
+Red: wrote OrderStatusChangedConsumerSuite mirroring OrderReservedConsumerSuite's TestContainerForAll/KafkaContainer pattern - one test per status, each producing a synthetic event and asserting a FakeEmailClient receives exactly one send with matching content, racing the consumer stream against a polled-Ref timeout. Confirmed it failed to compile (OrderStatusChangedConsumer didn't exist).
+Green: implemented OrderStatusChangedConsumer.scala - null-safe Option[String] key/value deserializers from the start (fs2-kafka's Deserializer.option, mirroring payment-service's fixed pattern rather than order-service's still-open one), group id notification-service-order-status-changed, decode + dispatch to EmailClient per status, commit offset unconditionally.
+
+BLOCKED: could not confirm Green by actually running the test. Testcontainers/docker-java in this dev environment cannot reach the local Docker daemon - every client strategy (default, explicit DOCKER_HOST, pinned DOCKER_API_VERSION, sandbox disabled, Docker Desktop restarted) gets back a degenerate, all-empty /info response with a 400, even though docker/docker compose/curl against the same socket all work fine. Confirmed this is a docker-java-vs-Docker-Desktop-version compatibility issue, not a daemon state problem (restart didn't help) and not specific to this code (Postgres-backed Testcontainers tests worked earlier this same session, before this gap opened up). Per user decision, marked all 3 tests '.ignore' with a doc comment explaining why - implementation compiles and is believed correct per manual code review against the OrderReservedConsumer precedent, but is NOT verified by a passing test run. Un-ignore once the tooling issue is resolved.
+
+Verified: sbt scalafmtCheck test - 13 passed, 0 failed, 3 ignored (this suite).
+
+Files: src/main/scala/notificationservice/OrderStatusChangedConsumer.scala, src/test/scala/notificationservice/OrderStatusChangedConsumerSuite.scala
