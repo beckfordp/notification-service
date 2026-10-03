@@ -11,9 +11,12 @@ class NotificationServiceConfigSuite extends CatsEffectSuite {
       |port = 8080
       |metrics-port = 9090
       |service-name = "notification-service"
+      |kafka {
+      |  bootstrap-servers = "localhost:9092"
+      |}
       |""".stripMargin
 
-  test("loads a fully-specified config, with no postgres block") {
+  test("loads a fully-specified config, with a kafka block") {
     val result =
       ConfigSource.string(validHocon).load[NotificationServiceConfig]
     assertEquals(
@@ -22,22 +25,24 @@ class NotificationServiceConfigSuite extends CatsEffectSuite {
         NotificationServiceConfig(
           port = 8080,
           metricsPort = 9090,
-          serviceName = "notification-service"
+          serviceName = "notification-service",
+          kafka = KafkaConfig(bootstrapServers = "localhost:9092")
         )
       )
     )
   }
 
   test("fails to load when a required field is missing") {
-    val missingServiceName =
+    val missingKafka =
       """
         |port = 8080
         |metrics-port = 9090
+        |service-name = "notification-service"
         |""".stripMargin
 
     assert(
       ConfigSource
-        .string(missingServiceName)
+        .string(missingKafka)
         .load[NotificationServiceConfig]
         .isLeft
     )
@@ -48,6 +53,7 @@ class NotificationServiceConfigSuite extends CatsEffectSuite {
       assertEquals(config.port, 8080)
       assertEquals(config.metricsPort, 9090)
       assertEquals(config.serviceName, "notification-service")
+      assertEquals(config.kafka, KafkaConfig(bootstrapServers = "localhost:9092"))
     }
   }
 }
