@@ -5,6 +5,12 @@ and follows [purerest](https://github.com/beckfordp/purerest)'s own design philo
 functional programming, no side effects outside the effect type, tagless-final style throughout.
 These are the standards to keep applying as you extend this service beyond what was generated.
 
+> **Note:** the worked examples below (`NotificationError.scala`, `NotificationRoutes.scala`,
+> `NotificationStore`) were removed in `conductor/tracks/strip-crud_20261002/` — this service
+> is now a bare Kafka-consumer shell with no CRUD layer. The *principles* below still apply;
+> the file names are pre-strip illustrations, kept until US-7.1 lands its own error ADT,
+> consumer, and routes to repoint these examples at.
+
 ## Pure Functional Programming
 
 - **Domain errors are ADTs, never exceptions used for control flow.** An expected, nameable
