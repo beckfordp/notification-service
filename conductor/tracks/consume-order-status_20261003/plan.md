@@ -1,21 +1,21 @@
 # Plan: US-7.1 — consume order.status-changed, send the matching email per status
 
 ## Phase 1: Domain model + EmailClient stub
-- [ ] Task 1.1: `OrderStatusChanged` enum + event codec (TDD)
-  - [ ] Red: `OrderStatusChangedEventSuite` — decode each of the 3 pinned wire
+- [x] Task 1.1: `OrderStatusChanged` enum + event codec (TDD) [751c0ca]
+  - [x] Red: `OrderStatusChangedEventSuite` — decode each of the 3 pinned wire
         strings (`reservation_failed`/`confirmed`/`payment_failed`) correctly;
         assert an unrecognized status string is a decode failure, not silently
         accepted. Run `sbt test`, confirm it fails to compile (types don't exist
         yet).
-  - [ ] Green: implement `OrderStatusChangedEvent.scala` (case class +
+  - [x] Green: implement `OrderStatusChangedEvent.scala` (case class +
         `OrderStatusChanged` enum + custom circe decoder). Run `sbt test`, confirm
         pass.
-- [ ] Task 1.2: `EmailClient[F]` stub (TDD)
-  - [ ] Red: `EmailClientSuite` — `EmailClient.logging(logger).send(...)` logs a
+- [x] Task 1.2: `EmailClient[F]` stub (TDD) [beb2636]
+  - [x] Red: `EmailClientSuite` — `EmailClient.logging(logger).send(...)` logs a
         structured line (assert via `StructuredTestingLogger`, same pattern used
         elsewhere in Gluon's test suites) containing the recipient and subject.
         Confirm it fails (type doesn't exist).
-  - [ ] Green: implement `EmailClient.scala` (trait + `logging` constructor).
+  - [x] Green: implement `EmailClient.scala` (trait + `logging` constructor).
         Confirm pass.
 - [ ] Task: Conductor - User Manual Verification 'Phase 1: Domain model + EmailClient stub' (Protocol in workflow.md)
 
