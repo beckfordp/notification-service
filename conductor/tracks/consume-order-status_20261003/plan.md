@@ -19,7 +19,7 @@
         Confirm pass.
 - [x] Task: Conductor - User Manual Verification 'Phase 1: Domain model + EmailClient stub' (Protocol in workflow.md) [781c050]
 
-## Phase 2: Kafka infra
+## Phase 2: Kafka infra [checkpoint: 8f64db5]
 - [x] Task 2.1: `build.sbt` — add `fs2-kafka` 3.6.0 and `testcontainers-scala-kafka`
       (mirroring payment-service's exact versions/deps) [97defed]
 - [x] Task 2.2: `docker-compose.yml` — add a single-node KRaft Kafka broker, copied
@@ -30,7 +30,7 @@
   - [x] Green: add `KafkaConfig`/the `kafka` field, and the
         `kafka { bootstrap-servers = ... }` block in `application.conf`. Confirm
         pass.
-- [ ] Task: Conductor - User Manual Verification 'Phase 2: Kafka infra' (Protocol in workflow.md)
+- [x] Task: Conductor - User Manual Verification 'Phase 2: Kafka infra' (Protocol in workflow.md) [8f64db5]
 
 ## Phase 3: OrderStatusChangedConsumer + readiness wiring
 - [ ] Task 3.1: Consumer happy path (TDD, Testcontainers Kafka — mirroring
