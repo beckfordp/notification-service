@@ -1,0 +1,8 @@
+{
+  "track_id": "consume-order-status_20261003",
+  "type": "feature",
+  "status": "new",
+  "created_at": "2026-10-03T04:55:53Z",
+  "updated_at": "2026-10-03T04:55:53Z",
+  "description": "US-7.1: consume order.status-changed (reservation_failed / confirmed / payment_failed), send the matching email per status"
+}
