@@ -1,0 +1,11 @@
+Phase 2 checkpoint: Kafka infra
+
+Automated tests: sbt scalafmtCheck test - 13 passed, 0 failed.
+
+Manual verification: no new consumer/HTTP behavior yet (this phase is pure infra: deps, broker, config), so no new committed verify script - instead ran a direct boot regression check:
+1. docker compose up -d - Kafka broker (apache/kafka:3.8.0) starts and reports healthy (confirmed earlier in Task 2.2 too).
+2. sbt run with the new kafka { bootstrap-servers = ... } application.conf block present - service boots without any pureconfig parse failure.
+3. GET /health -> 200, GET /health/ready -> 200.
+No regression from adding KafkaConfig to NotificationServiceConfig. A comprehensive end-to-end verify-order-status-changed.sh script lands in Phase 4 once the consumer and Main.scala wiring exist to drive it against.
+
+Confirmed per this project's prompting-off mode (.claude/prompt-off), in place of an interactive manual-verification walkthrough.
