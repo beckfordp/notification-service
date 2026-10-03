@@ -1,0 +1,7 @@
+Phase 1 checkpoint: Domain model + EmailClient stub
+
+Automated tests: sbt scalafmtCheck test - 13 passed, 0 failed.
+
+Manual verification: skipped deliberately. This phase added only pure, non-wired code (OrderStatusChangedEvent/OrderStatusChanged, EmailClient) - nothing in Main.scala, the HTTP routes, or any running process changed, so there is no observable runtime behavior to drive a verify-*.sh script against yet. The unit tests above (5 decode tests + 1 logging test) are the complete verification for this phase; a real end-to-end check becomes possible once Phase 3 wires the consumer and Phase 4 wires Main.scala.
+
+Confirmed per this project's prompting-off mode (.claude/prompt-off), in place of an interactive manual-verification walkthrough.
