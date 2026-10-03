@@ -1,0 +1,8 @@
+Task 2.3: Add KafkaConfig to NotificationServiceConfig (TDD)
+
+Red: updated NotificationServiceConfigSuite to require a kafka { bootstrap-servers = ... } block and assert the config's new kafka field; confirmed it failed to compile (KafkaConfig didn't exist, config.kafka wasn't a member).
+Green: added KafkaConfig(bootstrapServers: String) and the kafka field to NotificationServiceConfig; added the kafka { bootstrap-servers = ... } block to application.conf (bootstrap-servers overridable via KAFKA_BOOTSTRAP_SERVERS, mirroring payment-service's exact convention).
+
+Verified: sbt scalafmtCheck test - 13 passed, 0 failed.
+
+Files: src/main/scala/notificationservice/NotificationServiceConfig.scala, src/main/resources/application.conf, src/test/scala/notificationservice/NotificationServiceConfigSuite.scala
