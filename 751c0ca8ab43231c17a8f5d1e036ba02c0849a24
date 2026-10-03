@@ -1,0 +1,8 @@
+Task 1.1: OrderStatusChanged enum + event codec (TDD)
+
+Red: wrote OrderStatusChangedEventSuite asserting decode for all 3 pinned wire strings plus a decode failure for an unrecognized status; confirmed it failed to compile (types didn't exist).
+Green: implemented OrderStatusChangedEvent.scala - sealed trait OrderStatusChanged (ReservationFailed/Confirmed/PaymentFailed case objects, mirroring PaymentStatus's asString/fromString shape) with a circe Decoder built from fromString (so an unrecognized string is a genuine decode failure, not silently accepted) and an Encoder from asString; OrderStatusChangedEvent case class with a derived Codec.
+
+Verified: sbt scalafmtCheck test - 12 passed, 0 failed.
+
+Files: src/main/scala/notificationservice/OrderStatusChangedEvent.scala, src/test/scala/notificationservice/OrderStatusChangedEventSuite.scala
