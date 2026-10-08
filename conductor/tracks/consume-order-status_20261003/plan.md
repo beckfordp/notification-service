@@ -53,11 +53,11 @@
         triggers its email. Confirm it fails.
   - [x] Green: implement the decode-failure/null-value branches (log error, skip,
         commit). Confirm pass. (Already implemented in e8f62f1, ahead of plan.)
-- [ ] Task 3.3: Readiness wiring (TDD)
-  - [ ] Red: update `HealthRoutesSuite` — `readyServerEndpoint[F]` now takes a
+- [x] Task 3.3: Readiness wiring (TDD) [17e9c5f]
+  - [x] Red: update `HealthRoutesSuite` — `readyServerEndpoint[F]` now takes a
         `Ref[F, Boolean]`; returns `200` when `true`, `503` when `false`. Confirm
         it fails against the current no-arg signature.
-  - [ ] Green: implement the ref-based `readyServerEndpoint`; wire
+  - [x] Green: implement the ref-based `readyServerEndpoint`; wire
         `OrderStatusChangedConsumer`'s stream with `.onFinalizeCase` to flip the
         ref `false` only on an `Errored` exit. Confirm pass.
 - [ ] Task: Conductor - User Manual Verification 'Phase 3: OrderStatusChangedConsumer + readiness wiring' (Protocol in workflow.md)
