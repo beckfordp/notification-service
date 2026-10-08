@@ -62,7 +62,7 @@
         ref `false` only on an `Errored` exit. Confirm pass.
 - [x] Task: Conductor - User Manual Verification 'Phase 3: OrderStatusChangedConsumer + readiness wiring' (Protocol in workflow.md) [4c05b22]
 
-## Phase 4: Wire Main.scala + end-to-end verification
+## Phase 4: Wire Main.scala + end-to-end verification [checkpoint: 41f3e7b]
 - [x] Task 4.1: `Main.scala` — load `KafkaConfig`, build `EmailClient.logging`,
       start the consumer via `.compile.drain.background.use`, pass the health ref
       into `HealthRoutes`, serve routes. Run `sbt compile`, confirm clean. [d2b6b2f]
@@ -72,4 +72,4 @@
       status to the local broker, grep the service's log output for each status's
       email log line, and confirm `/health/ready` reports `200` throughout. Run
       it, confirm all checks pass. [0a9a026]
-- [ ] Task: Conductor - User Manual Verification 'Phase 4: Wire Main.scala + end-to-end verification' (Protocol in workflow.md)
+- [x] Task: Conductor - User Manual Verification 'Phase 4: Wire Main.scala + end-to-end verification' (Protocol in workflow.md) [41f3e7b]
