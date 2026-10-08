@@ -21,6 +21,6 @@ object EmailClient {
       def send(to: String, subject: String, body: String): F[Unit] =
         logger.info(
           Map("to" -> to, "subject" -> subject, "body" -> body)
-        )("Sending email (stub - logged only)")
+        )(s"Sending email (stub - logged only) to=$to subject=$subject")
     }
 }
