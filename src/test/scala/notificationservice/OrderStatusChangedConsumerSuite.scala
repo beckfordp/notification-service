@@ -106,10 +106,11 @@ class OrderStatusChangedConsumerSuite
     val config = configFor(kafka)
     for {
       emailsRef <- Ref.of[IO, List[SentEmail]](Nil)
+      ready <- Ref.of[IO, Boolean](true)
       _ <- produce(config, ev.orderId, ev.asJson.noSpaces)
       raced <- IO.race(
         OrderStatusChangedConsumer
-          .run[IO](config, fakeEmailClient(emailsRef), NoOpLogger[IO])
+          .run[IO](config, fakeEmailClient(emailsRef), NoOpLogger[IO], ready)
           .compile
           .drain,
         awaitEmails(emailsRef, 1)
