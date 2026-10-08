@@ -66,10 +66,10 @@
 - [x] Task 4.1: `Main.scala` — load `KafkaConfig`, build `EmailClient.logging`,
       start the consumer via `.compile.drain.background.use`, pass the health ref
       into `HealthRoutes`, serve routes. Run `sbt compile`, confirm clean. [d2b6b2f]
-- [ ] Task 4.2: `scripts/verify-order-status-changed.sh` — `docker compose up -d`
+- [x] Task 4.2: `scripts/verify-order-status-changed.sh` — `docker compose up -d`
       (now includes Kafka), `sbt run` (logging to a file, same pattern as the
       prior track's scripts), publish one real `order.status-changed` event per
       status to the local broker, grep the service's log output for each status's
       email log line, and confirm `/health/ready` reports `200` throughout. Run
-      it, confirm all checks pass.
+      it, confirm all checks pass. [0a9a026]
 - [ ] Task: Conductor - User Manual Verification 'Phase 4: Wire Main.scala + end-to-end verification' (Protocol in workflow.md)
