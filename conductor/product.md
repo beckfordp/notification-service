@@ -31,8 +31,16 @@ declares zero services. The service now serves only `/health` and
 services-table line is now accurate (it was aspirational before this
 track).
 
-The next track, US-7.1, builds the real `order.status-changed` Kafka
-consumer on top of this shell.
+Track `conductor/tracks/consume-order-status_20261003/` (US-7.1, complete)
+built the real `order.status-changed` Kafka consumer on top of this shell:
+`OrderStatusChangedConsumer` subscribes with null-safe key/value
+deserializers, decodes each event, and dispatches the matching email via a
+stub `EmailClient.logging` (structured log line, no real provider). A
+shared `Ref[F, Boolean]` tracks the consumer fiber's liveness —
+`/health/ready` returns `503` only if that fiber actually crashes, `200`
+otherwise. `Main.scala` starts the consumer in the background and serves
+both routes. Verified end-to-end against a real local Kafka broker via
+`scripts/verify-order-status-changed.sh`.
 
 ## Domain model
 No domain entity in the CRUD sense — this service has none now that the
