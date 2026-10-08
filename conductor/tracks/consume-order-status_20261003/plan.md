@@ -46,13 +46,13 @@
         `Option[String]` key/value deserializers from the start, group id
         `notification-service-order-status-changed`, decode + dispatch to
         `EmailClient`, commit offset unconditionally. Confirm pass.
-- [ ] Task 3.2: Bad-event handling (TDD)
-  - [ ] Red: extend the suite — a malformed-JSON record and a null-*value* record
+- [x] Task 3.2: Bad-event handling (TDD) [dd6cede]
+  - [x] Red: extend the suite — a malformed-JSON record and a null-*value* record
         (this topic's analogue of `OrderReservedConsumerSuite`'s null-key test) are
         both logged and skipped, and a later good event on the same topic still
         triggers its email. Confirm it fails.
-  - [ ] Green: implement the decode-failure/null-value branches (log error, skip,
-        commit). Confirm pass.
+  - [x] Green: implement the decode-failure/null-value branches (log error, skip,
+        commit). Confirm pass. (Already implemented in e8f62f1, ahead of plan.)
 - [ ] Task 3.3: Readiness wiring (TDD)
   - [ ] Red: update `HealthRoutesSuite` — `readyServerEndpoint[F]` now takes a
         `Ref[F, Boolean]`; returns `200` when `true`, `503` when `false`. Confirm
