@@ -32,17 +32,17 @@
         pass.
 - [x] Task: Conductor - User Manual Verification 'Phase 2: Kafka infra' (Protocol in workflow.md) [8f64db5]
 
-## Phase 3: OrderStatusChangedConsumer + readiness wiring
-- [ ] Task 3.1: Consumer happy path (TDD, Testcontainers Kafka — mirroring
+## Phase 3: OrderStatusChangedConsumer + readiness wiring [checkpoint: 4c05b22]
+- [x] Task 3.1: Consumer happy path (TDD, Testcontainers Kafka — mirroring
       `OrderReservedConsumerSuite`'s `TestContainerForAll`/`KafkaContainer` pattern
-      exactly)
-  - [ ] Red: `OrderStatusChangedConsumerSuite` — produce one synthetic event per
+      exactly) [e8f62f1]
+  - [x] Red: `OrderStatusChangedConsumerSuite` — produce one synthetic event per
         status to a real (test) Kafka broker; assert a `FakeEmailClient` (records
         calls to a `Ref`) receives exactly one `send` with the matching
         subject/recipient, racing the infinite consumer stream against a polled
         timeout (same `IO.race` shape as `OrderReservedConsumerSuite`). Confirm it
         fails (file doesn't exist).
-  - [ ] Green: implement `OrderStatusChangedConsumer.scala` — null-safe
+  - [x] Green: implement `OrderStatusChangedConsumer.scala` — null-safe
         `Option[String]` key/value deserializers from the start, group id
         `notification-service-order-status-changed`, decode + dispatch to
         `EmailClient`, commit offset unconditionally. Confirm pass.
@@ -60,7 +60,7 @@
   - [x] Green: implement the ref-based `readyServerEndpoint`; wire
         `OrderStatusChangedConsumer`'s stream with `.onFinalizeCase` to flip the
         ref `false` only on an `Errored` exit. Confirm pass.
-- [ ] Task: Conductor - User Manual Verification 'Phase 3: OrderStatusChangedConsumer + readiness wiring' (Protocol in workflow.md)
+- [x] Task: Conductor - User Manual Verification 'Phase 3: OrderStatusChangedConsumer + readiness wiring' (Protocol in workflow.md) [4c05b22]
 
 ## Phase 4: Wire Main.scala + end-to-end verification
 - [ ] Task 4.1: `Main.scala` — load `KafkaConfig`, build `EmailClient.logging`,
