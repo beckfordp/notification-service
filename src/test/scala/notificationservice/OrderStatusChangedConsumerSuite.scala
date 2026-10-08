@@ -65,6 +65,28 @@ class OrderStatusChangedConsumerSuite
       )
   }
 
+  /** Sends a record with a genuinely null value, bypassing fs2-kafka's typed
+    * `String` serializer (which itself throws on a null value) - exactly
+    * what a producer that fails mid-send, or a raw `kafka-console-producer.sh`
+    * invocation, can send.
+    */
+  private def produceNullValue(config: KafkaConfig, key: String): IO[Unit] = {
+    val producerSettings =
+      ProducerSettings[IO, Array[Byte], Array[Byte]]
+        .withBootstrapServers(config.bootstrapServers)
+    KafkaProducer
+      .resource(producerSettings)
+      .use(
+        _.produceOne_(
+          ProducerRecord(
+            OrderStatusChangedConsumer.topic,
+            key.getBytes("UTF-8"),
+            null
+          )
+        ).flatten.void
+      )
+  }
+
   private def event(
       orderId: String,
       customerId: String,
@@ -133,6 +155,38 @@ class OrderStatusChangedConsumerSuite
         assertEquals(email.to, "cust-3")
         assert(email.subject.contains("couldn't process your payment"))
         assert(email.body.contains("order-3"))
+      }
+    }
+  }
+
+  test(
+    "a malformed payload is logged and doesn't block a later good event".ignore
+  ) {
+    withContainers { kafka =>
+      val config = configFor(kafka)
+      val goodEvent = event("order-4", "cust-4", OrderStatusChanged.Confirmed)
+      for {
+        _ <- produce(config, "bad-key", "not-json")
+        email <- runAndAwaitOneEmail(kafka, goodEvent)
+      } yield {
+        assertEquals(email.to, "cust-4")
+        assert(email.subject.contains("confirmed"))
+      }
+    }
+  }
+
+  test(
+    "a null-valued record is logged and doesn't block a later good event".ignore
+  ) {
+    withContainers { kafka =>
+      val config = configFor(kafka)
+      val goodEvent = event("order-5", "cust-5", OrderStatusChanged.Confirmed)
+      for {
+        _ <- produceNullValue(config, "null-value-key")
+        email <- runAndAwaitOneEmail(kafka, goodEvent)
+      } yield {
+        assertEquals(email.to, "cust-5")
+        assert(email.subject.contains("confirmed"))
       }
     }
   }
