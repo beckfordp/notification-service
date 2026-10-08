@@ -2,9 +2,6 @@
 
 This file tracks all major tracks for the project.
 
-- [x] **Track: US-7.1: consume order.status-changed (reservation_failed / confirmed / payment_failed), send the matching email per status**
-  *Link: [./tracks/consume-order-status_20261003/](./tracks/consume-order-status_20261003/)*
-
 ---
 
 ## Backlog
