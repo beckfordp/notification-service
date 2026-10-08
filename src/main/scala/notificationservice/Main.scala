@@ -30,16 +30,25 @@ object Main extends IOApp.Simple {
                 )
               )("notification-service starting")
               readyRef <- Ref.of[IO, Boolean](true)
-              healthRoutes = HealthRoutes.routes[IO](readyRef)
-              tracedRoutes = ServerTracing.middleware(tracer)(healthRoutes)
-              routes = ServerMetrics.middleware[IO](meter)(tracedRoutes)
-              _ <- EmberServerBuilder
-                .default[IO]
-                .withHost(host"0.0.0.0")
-                .withPort(port)
-                .withHttpApp(routes.orNotFound)
-                .build
-                .useForever
+              emailClient = EmailClient.logging[IO](logger)
+              _ <- OrderStatusChangedConsumer
+                .run[IO](config.kafka, emailClient, logger, readyRef)
+                .compile
+                .drain
+                .background
+                .use { _ =>
+                  val healthRoutes = HealthRoutes.routes[IO](readyRef)
+                  val tracedRoutes =
+                    ServerTracing.middleware(tracer)(healthRoutes)
+                  val routes = ServerMetrics.middleware[IO](meter)(tracedRoutes)
+                  EmberServerBuilder
+                    .default[IO]
+                    .withHost(host"0.0.0.0")
+                    .withPort(port)
+                    .withHttpApp(routes.orNotFound)
+                    .build
+                    .useForever
+                }
             } yield ()
         }
       }
