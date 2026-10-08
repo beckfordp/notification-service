@@ -35,31 +35,36 @@
 - munit 1.3.6 + munit-cats-effect 2.2.1
 - log4cats-testing 2.8.0 — assert on structured log output
 - scalafmt (default Scala 3 style) — `sbt scalafmtCheck test` run in CI
-- No testcontainers module currently in `build.sbt` (the postgresql +
-  munit modules were dropped along with the CRUD layer) — a kafka module
-  will be added for US-7.1's consumer, see "Not yet in build.sbt" below
+- testcontainers-scala-kafka — added for US-7.1's consumer integration
+  tests (`OrderStatusChangedConsumerSuite`). Currently `.ignore`'d in this
+  dev environment: a docker-java/Testcontainers-vs-local-Docker-Desktop
+  version incompatibility makes every client strategy get a degenerate
+  `/info` response, even though `docker`/`docker compose`/`curl` against
+  the same socket all work fine — not a code problem. Un-ignore once
+  resolved.
 
 ## Packaging / local deploy
 - sbt-native-packager (`JavaAppPackaging`, `DockerPlugin`)
 - Docker image: `eclipse-temurin:21-jre`
-- Docker Compose — currently declares zero services (`docker-compose.yml`);
-  a Kafka broker will be added once US-7.1 builds the consumer
+- Docker Compose — declares one service: a single-node KRaft-mode Kafka
+  broker (`apache/kafka:3.8.0`), mirroring payment-service's
+  `docker-compose.yml` exactly.
 
-## Not yet in build.sbt (needed for US-7.1, per system-design.md's services table)
-- **fs2-kafka** — consumer side only (no publish side for this service);
-  subscribes to `order.status-changed`, mirrors order-service's
-  `StockEventConsumer` / payment-service's `OrderReservedConsumer` pattern.
-  Use fs2-kafka's null-safe `Deserializer.option` for key/value from the
-  start — `system-design.md`'s "Open design questions" flags a live bug
-  where the plain `String` deserializer throws (and silently kills the
-  backgrounded consumer fiber) on a null key/value; payment-service already
-  fixed this, order-service hasn't yet
-- **testcontainers-scala-kafka** — Kafka module, for the consumer's own
-  integration tests (publish synthetic `order.status-changed` events,
-  assert the stubbed send fires)
-- An email/notification client — no real provider decided yet (per
-  PLAN.md Phase 5); stub it (log line or fake client) rather than adding a
-  real dependency
+## Messaging
+- fs2-kafka 3.6.0 — consumer side only (no publish side for this
+  service). `OrderStatusChangedConsumer` subscribes to
+  `order.status-changed` with null-safe `Deserializer.option` for both
+  key and value from the start (mirrors payment-service's
+  `OrderReservedConsumer`, which already fixed the plain-`String`-
+  deserializer-throws-on-null bug that order-service's `StockEventConsumer`
+  still has). Group id `notification-service-order-status-changed`.
+  At-least-once, commit-after-process, no retry on the consume side.
+- Readiness: a shared `Ref[F, Boolean]` flips to `false` via the
+  consumer stream's `.onFinalizeCase`, only on an `Errored` exit (not
+  ordinary cancellation/shutdown). `HealthRoutes.readyServerEndpoint`
+  reads it and returns `200`/`503` accordingly.
+- Email: no real provider decided yet (per PLAN.md Phase 5) —
+  `EmailClient.logging` stubs the send as a structured log line.
 
 ## Target infrastructure (platform-wide, from `gluon/docs/system-design.md`)
 - Local: OrbStack Kubernetes (see ADR 0002)
