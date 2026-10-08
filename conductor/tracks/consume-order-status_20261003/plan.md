@@ -63,9 +63,9 @@
 - [x] Task: Conductor - User Manual Verification 'Phase 3: OrderStatusChangedConsumer + readiness wiring' (Protocol in workflow.md) [4c05b22]
 
 ## Phase 4: Wire Main.scala + end-to-end verification
-- [ ] Task 4.1: `Main.scala` — load `KafkaConfig`, build `EmailClient.logging`,
+- [x] Task 4.1: `Main.scala` — load `KafkaConfig`, build `EmailClient.logging`,
       start the consumer via `.compile.drain.background.use`, pass the health ref
-      into `HealthRoutes`, serve routes. Run `sbt compile`, confirm clean.
+      into `HealthRoutes`, serve routes. Run `sbt compile`, confirm clean. [d2b6b2f]
 - [ ] Task 4.2: `scripts/verify-order-status-changed.sh` — `docker compose up -d`
       (now includes Kafka), `sbt run` (logging to a file, same pattern as the
       prior track's scripts), publish one real `order.status-changed` event per
