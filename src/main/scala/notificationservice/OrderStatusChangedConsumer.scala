@@ -74,7 +74,9 @@ object OrderStatusChangedConsumer {
                 "order_id" -> event.orderId,
                 "status" -> event.status.asString
               )
-            )("Sent order.status-changed email")
+            )(
+              s"Sent order.status-changed email (order_id=${event.orderId}, status=${event.status.asString})"
+            )
         }
 
         val handled: F[Unit] = committable.record.value match {
