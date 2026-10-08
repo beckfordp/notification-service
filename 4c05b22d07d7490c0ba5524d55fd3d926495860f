@@ -1,0 +1,10 @@
+Phase 3 verification report.
+
+Automated tests: sbt scalafmtCheck; test -> 14 passed, 0 failed, 5 ignored (Testcontainers Kafka tests remain .ignore'd - local docker-java/Testcontainers version can't reach the Docker daemon in this dev environment, documented in OrderStatusChangedConsumerSuite's class doc).
+
+Manual verification plan presented to user:
+1. sbt run to start the service.
+2. curl -i http://localhost:<port>/health -> expect 200.
+3. curl -i http://localhost:<port>/health/ready -> expect 200 (ready ref defaults true; consumer not yet wired into Main.scala so nothing flips it - full e2e Kafka verification deferred to Phase 4's verify-order-status-changed.sh).
+
+User confirmation: 'Yes, proceed' - limited manual check accepted as sufficient for this phase, given the consumer isn't wired into Main.scala until Task 4.1.
