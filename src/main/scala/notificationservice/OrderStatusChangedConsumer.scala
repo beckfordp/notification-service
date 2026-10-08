@@ -1,6 +1,7 @@
 package notificationservice
 
-import cats.effect.Async
+import cats.effect.kernel.Resource.ExitCase
+import cats.effect.{Async, Ref}
 import cats.syntax.all._
 import fs2.Stream
 import fs2.kafka._
@@ -57,7 +58,8 @@ object OrderStatusChangedConsumer {
   def run[F[_]: Async](
       config: KafkaConfig,
       emailClient: EmailClient[F],
-      logger: StructuredLogger[F]
+      logger: StructuredLogger[F],
+      ready: Ref[F, Boolean]
   ): Stream[F, Unit] =
     KafkaConsumer
       .stream(consumerSettings[F](config))
@@ -91,5 +93,11 @@ object OrderStatusChangedConsumer {
             }
         }
         handled *> committable.offset.commit
+      }
+      // Only a genuine crash marks the service unready - normal completion/
+      // cancellation (e.g. shutdown) shouldn't flip /health/ready to 503.
+      .onFinalizeCase {
+        case ExitCase.Errored(_) => ready.set(false)
+        case _                   => Async[F].unit
       }
 }

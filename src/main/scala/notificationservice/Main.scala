@@ -1,6 +1,6 @@
 package notificationservice
 
-import cats.effect.{IO, IOApp}
+import cats.effect.{IO, IOApp, Ref}
 import com.comcast.ip4s._
 import org.http4s.ember.server.EmberServerBuilder
 import org.http4s.implicits._
@@ -29,7 +29,8 @@ object Main extends IOApp.Simple {
                   "metrics_port" -> config.metricsPort.toString
                 )
               )("notification-service starting")
-              healthRoutes = HealthRoutes.routes[IO]
+              readyRef <- Ref.of[IO, Boolean](true)
+              healthRoutes = HealthRoutes.routes[IO](readyRef)
               tracedRoutes = ServerTracing.middleware(tracer)(healthRoutes)
               routes = ServerMetrics.middleware[IO](meter)(tracedRoutes)
               _ <- EmberServerBuilder
