@@ -10,6 +10,13 @@
   health-check routes only (the CRUD routes were removed in
   `conductor/tracks/strip-crud_20261002/`)
 - circe 0.14.16 (circe-generic, circe-parser)
+- CORS — `org.http4s.server.middleware.CORS` (ships in `http4s-server`, no new
+  dependency) wraps every response (`Cors.scala`), including the two
+  health-check routes. Allow all origins, GET/POST/PATCH/PUT/DELETE,
+  `Content-Type` header allowed, credentials disallowed — same policy as
+  every other generated service, kept for consistency even though this
+  service has no domain routes for it to protect. Ported from
+  `pure-service-generator`'s `cors_20261010` track (TD-1.3).
 
 ## API layer
 - tapir 1.11.25 (tapir-core, tapir-json-circe, tapir-http4s-server) —
