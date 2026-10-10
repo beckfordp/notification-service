@@ -11,6 +11,14 @@ folder), so `/conductor:implement` cannot pick these up by accident. Reorder fre
 priorities change. When ready to work on one, run `/conductor:newTrack <title>` to go
 through the spec/plan questions and promote it into a real track above.
 
+- No CORS support (no `Access-Control-Allow-Origin` header) — not
+  independently browser-confirmed for this service (no endpoint gshop
+  calls directly), but scaffolded from the same `pure-service-generator`
+  template, so almost certainly the same gap. Fix at the generator first
+  (`src/main/g8/src/main/scala/$package$/Main.scala`, wrap `routes`
+  with http4s's `org.http4s.server.middleware.CORS` before
+  `.orNotFound`), then port here. See `gluon/TECHNICAL_DEBT.md` TD-1 and
+  `gluon/backlogs/notification-service.md`.
 - Fix local Testcontainers/Docker-Desktop compatibility (or wire scripts/verify-order-status-changed.sh into CI) so OrderStatusChangedConsumerSuite's Kafka integration tests aren't permanently .ignore'd
 - `OrderStatusChangedConsumer` doesn't self-heal from a dropped Kafka
   connection — found 2026-10-09 restarting OrbStack: every other service's
