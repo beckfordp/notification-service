@@ -2,12 +2,16 @@
 set -euo pipefail
 
 # Verifies US-7.1 (track consume-order-status_20261003) end-to-end: brings up
-# Kafka + the real service, publishes a synthetic order.status-changed event
-# per status directly onto the topic (no live order-service needed, per the
-# stub/fan-out pattern), and confirms the real consumer logs the matching
-# email send for each status while /health/ready stays 200 throughout - not
-# just that the unit/integration test suite passes (those Kafka tests stay
-# .ignore'd in this dev environment - see OrderStatusChangedConsumerSuite).
+# Kafka + the real service, publishes a synthetic OrderStatusChanged envelope
+# per status directly onto the order-events topic (no live order-service
+# needed, per the stub/fan-out pattern), and confirms the real consumer logs
+# the matching email send for each status while /health/ready stays 200
+# throughout - not just that the unit/integration test suite passes (those
+# Kafka tests stay .ignore'd in this dev environment - see
+# OrderStatusChangedConsumerSuite).
+#
+# Migrated to the order-events domain topic + envelope shape by
+# kafka-envelope_20261011 (ADR 0009).
 #
 # Usage: ./scripts/verify-order-status-changed.sh
 
@@ -53,6 +57,21 @@ produce_one() {
     --topic "$topic" >/dev/null 2>&1
 }
 
+envelope() {
+  local event_type="$1" correlation_id="$2" payload="$3"
+  python3 -c "
+import json, sys
+print(json.dumps({
+    'eventId': 'verify-' + '$event_type'.lower() + '-$correlation_id',
+    'eventType': '$event_type',
+    'timestamp': '2026-01-01T00:00:00Z',
+    'source': 'order-service',
+    'correlationId': '$correlation_id',
+    'payload': json.loads(sys.argv[1]),
+}))
+" "$payload"
+}
+
 wait_for_log_line() {
   local pattern="$1"
   for _ in $(seq 1 30); do
@@ -68,17 +87,17 @@ docker compose up -d
 echo "   OK: kafka starting"
 
 echo
-echo "2. Pre-create order.status-changed (avoids a cold-subscription race: the"
+echo "2. Pre-create order-events (avoids a cold-subscription race: the"
 echo "   consumer subscribes at startup, and auto-created-by-producer topics"
 echo "   aren't always picked up by an already-subscribed consumer in time)..."
 for _ in $(seq 1 30); do
   docker compose exec -T kafka /opt/kafka/bin/kafka-topics.sh \
     --bootstrap-server localhost:9092 --create --if-not-exists \
-    --topic order.status-changed --partitions 1 --replication-factor 1 \
+    --topic order-events --partitions 1 --replication-factor 1 \
     >/dev/null 2>&1 && break
   sleep 1
 done
-echo "   OK: order.status-changed topic created"
+echo "   OK: order-events topic created"
 
 echo
 echo "3. Starting notification-service (sbt run) in the background..."
@@ -92,11 +111,11 @@ wait_ready
 echo "   OK: notification-service ready on :8080"
 
 echo
-echo "4. Publish one synthetic event per status and confirm the matching email..."
+echo "4. Publish one synthetic OrderStatusChanged envelope per status and confirm the matching email..."
 for status in reservation_failed confirmed payment_failed; do
   order_id="verify-${status}-$(date +%s)"
-  produce_one order.status-changed \
-    "{\"orderId\":\"${order_id}\",\"customerId\":\"cust-verify\",\"status\":\"${status}\",\"timestamp\":\"2026-01-01T00:00:00Z\"}"
+  payload="{\"orderId\":\"${order_id}\",\"customerId\":\"cust-verify\",\"status\":\"${status}\",\"timestamp\":\"2026-01-01T00:00:00Z\"}"
+  produce_one order-events "$(envelope OrderStatusChanged "$order_id" "$payload")"
   if wait_for_log_line "order_id=${order_id}, status=${status}"; then
     check "email sent for status '${status}'" "0" "0"
   else
@@ -106,6 +125,21 @@ for status in reservation_failed confirmed payment_failed; do
   ready="$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/health/ready)"
   check "/health/ready still 200 after '${status}'" "200" "$ready"
 done
+
+echo
+echo "5. Publishing an OrderReserved envelope on order-events (same topic,"
+echo "   different eventType) and confirming it's silently skipped, not"
+echo "   logged as malformed, and doesn't disrupt /health/ready..."
+reserved_order_id="verify-order-reserved-$(date +%s)"
+produce_one order-events "$(envelope OrderReserved "$reserved_order_id" "{\"orderId\":\"${reserved_order_id}\"}")"
+sleep 2
+if grep -qF "Failed to decode" "$LOG_FILE"; then
+  check "no malformed-decode error logged for OrderReserved" "0" "1"
+else
+  check "no malformed-decode error logged for OrderReserved" "0" "0"
+fi
+ready="$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/health/ready)"
+check "/health/ready still 200 after OrderReserved" "200" "$ready"
 
 echo
 if [ "$FAILED" -eq 0 ]; then
