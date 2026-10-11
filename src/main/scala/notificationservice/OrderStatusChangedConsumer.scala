@@ -8,18 +8,24 @@ import fs2.kafka._
 import io.circe.parser.decode
 import org.typelevel.log4cats.StructuredLogger
 
-/** Consumes `order.status-changed` (US-7.1): decodes the event and sends the
-  * matching email via `EmailClient` for each of the three recognized statuses.
-  * No retry on the consume/processing side (a decode failure is logged and the
-  * offset still committed) - same at-least-once, commit-after-process risk
-  * profile as payment-service's own `OrderReservedConsumer`. No
-  * duplicate-delivery guard: a redelivered event sends a second email for the
-  * same order - acceptable for the walking skeleton (no real email provider to
-  * worry about double-sending to yet).
+/** Consumes `OrderStatusChanged` envelopes on `order-events` (US-7.1; migrated
+  * to the domain topic + envelope shape per ADR 0009): decodes the envelope,
+  * then the event, and sends the matching email via `EmailClient` for each of
+  * the three recognized statuses. No retry on the consume/processing side (a
+  * decode failure is logged and the offset still committed) - same
+  * at-least-once, commit-after-process risk profile as payment-service's own
+  * `OrderReservedConsumer`. No duplicate-delivery guard: a redelivered event
+  * sends a second email for the same order - acceptable for the walking
+  * skeleton (no real email provider to worry about double-sending to yet).
+  * `order-events` carries other event types (e.g. `OrderReserved`) this
+  * consumer doesn't care about - those are silently skipped by `eventType`, not
+  * logged as malformed.
   */
 object OrderStatusChangedConsumer {
 
-  val topic: String = "order.status-changed"
+  val topic: String = "order-events"
+
+  private val eventType: String = "OrderStatusChanged"
 
   // Key/value typed as Option[String] (via fs2-kafka's null-safe
   // Deserializer.option) rather than plain String: a plain String
@@ -33,7 +39,7 @@ object OrderStatusChangedConsumer {
   ): ConsumerSettings[F, Option[String], Option[String]] =
     ConsumerSettings[F, Option[String], Option[String]]
       .withBootstrapServers(config.bootstrapServers)
-      .withGroupId("notification-service-order-status-changed")
+      .withGroupId("notification-service-order-events")
       .withAutoOffsetReset(AutoOffsetReset.Earliest)
 
   private def emailFor(event: OrderStatusChangedEvent): (String, String) =
@@ -75,23 +81,33 @@ object OrderStatusChangedConsumer {
                 "status" -> event.status.asString
               )
             )(
-              s"Sent order.status-changed email (order_id=${event.orderId}, status=${event.status.asString})"
+              s"Sent OrderStatusChanged email (order_id=${event.orderId}, status=${event.status.asString})"
             )
         }
 
         val handled: F[Unit] = committable.record.value match {
           case None =>
             logger.error(Map.empty)(
-              "Received order.status-changed record with a null value - skipping"
+              "Received order-events record with a null value - skipping"
             )
           case Some(raw) =>
-            decode[OrderStatusChangedEvent](raw) match {
+            decode[EventEnvelope](raw) match {
               case Left(error) =>
                 logger.error(
                   Map("raw" -> raw),
                   error
-                )("Failed to decode order.status-changed")
-              case Right(event) => handleEvent(event)
+                )("Failed to decode order-events envelope")
+              case Right(envelope) if envelope.eventType != eventType =>
+                Async[F].unit
+              case Right(envelope) =>
+                envelope.payload.as[OrderStatusChangedEvent] match {
+                  case Left(error) =>
+                    logger.error(
+                      Map("raw" -> raw),
+                      error
+                    )("Failed to decode OrderStatusChanged payload")
+                  case Right(event) => handleEvent(event)
+                }
             }
         }
         handled *> committable.offset.commit

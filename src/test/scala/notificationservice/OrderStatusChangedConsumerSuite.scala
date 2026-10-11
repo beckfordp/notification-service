@@ -4,15 +4,17 @@ import cats.effect.{IO, Ref}
 import com.dimafeng.testcontainers.KafkaContainer
 import com.dimafeng.testcontainers.munit.TestContainerForAll
 import fs2.kafka._
+import io.circe.Json
 import io.circe.syntax._
 import munit.CatsEffectSuite
 import org.typelevel.log4cats.noop.NoOpLogger
 
 import java.time.Instant
+import java.util.UUID
 import scala.concurrent.duration._
 
-/** Ignored: Testcontainers/docker-java in this dev environment cannot reach
-  * the local Docker daemon (every client strategy gets a degenerate, all-empty
+/** Ignored: Testcontainers/docker-java in this dev environment cannot reach the
+  * local Docker daemon (every client strategy gets a degenerate, all-empty
   * `/info` response with a 400, even though `docker`/`docker compose`/`curl`
   * against the same socket all work fine) - a docker-java/Testcontainers
   * version-vs-Docker-Desktop-version compatibility issue, not a code problem.
@@ -65,9 +67,23 @@ class OrderStatusChangedConsumerSuite
       )
   }
 
+  private def envelopeJson(
+      eventType: String,
+      correlationId: String,
+      payload: Json
+  ): String =
+    EventEnvelope(
+      eventId = UUID.randomUUID().toString,
+      eventType = eventType,
+      timestamp = Instant.parse("2026-01-01T00:00:00Z"),
+      source = "order-service",
+      correlationId = correlationId,
+      payload = payload
+    ).asJson.noSpaces
+
   /** Sends a record with a genuinely null value, bypassing fs2-kafka's typed
-    * `String` serializer (which itself throws on a null value) - exactly
-    * what a producer that fails mid-send, or a raw `kafka-console-producer.sh`
+    * `String` serializer (which itself throws on a null value) - exactly what a
+    * producer that fails mid-send, or a raw `kafka-console-producer.sh`
     * invocation, can send.
     */
   private def produceNullValue(config: KafkaConfig, key: String): IO[Unit] = {
@@ -107,7 +123,11 @@ class OrderStatusChangedConsumerSuite
     for {
       emailsRef <- Ref.of[IO, List[SentEmail]](Nil)
       ready <- Ref.of[IO, Boolean](true)
-      _ <- produce(config, ev.orderId, ev.asJson.noSpaces)
+      _ <- produce(
+        config,
+        ev.orderId,
+        envelopeJson("OrderStatusChanged", ev.orderId, ev.asJson)
+      )
       raced <- IO.race(
         OrderStatusChangedConsumer
           .run[IO](config, fakeEmailClient(emailsRef), NoOpLogger[IO], ready)
@@ -117,7 +137,7 @@ class OrderStatusChangedConsumerSuite
       )
       emails <- raced match {
         case Right(emails) => IO.pure(emails)
-        case Left(_) =>
+        case Left(_)       =>
           IO.raiseError(
             new RuntimeException(
               "consumer stream completed before an email arrived"
@@ -161,7 +181,7 @@ class OrderStatusChangedConsumerSuite
   }
 
   test(
-    "a malformed payload is logged and doesn't block a later good event".ignore
+    "a malformed envelope is logged and doesn't block a later good event".ignore
   ) {
     withContainers { kafka =>
       val config = configFor(kafka)
@@ -171,6 +191,30 @@ class OrderStatusChangedConsumerSuite
         email <- runAndAwaitOneEmail(kafka, goodEvent)
       } yield {
         assertEquals(email.to, "cust-4")
+        assert(email.subject.contains("confirmed"))
+      }
+    }
+  }
+
+  test(
+    "an envelope with an eventType other than OrderStatusChanged is ignored, not treated as malformed".ignore
+  ) {
+    withContainers { kafka =>
+      val config = configFor(kafka)
+      val goodEvent = event("order-6", "cust-6", OrderStatusChanged.Confirmed)
+      for {
+        _ <- produce(
+          config,
+          "order-reserved-6",
+          envelopeJson(
+            "OrderReserved",
+            "order-reserved-6",
+            Json.obj("orderId" -> Json.fromString("order-reserved-6"))
+          )
+        )
+        email <- runAndAwaitOneEmail(kafka, goodEvent)
+      } yield {
+        assertEquals(email.to, "cust-6")
         assert(email.subject.contains("confirmed"))
       }
     }
