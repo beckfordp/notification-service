@@ -10,11 +10,11 @@ slice.
 
 ## What this service does
 notification-service closes the walking skeleton: it consumes
-`order.status-changed` from Kafka and sends the matching customer email for
-`reservation_failed` / `confirmed` / `payment_failed`. No HTTP write API, no
-customer-facing endpoints — Kafka consumer only, per `user-stories.md`'s
-US-7 framing ("New `notification-service`, Kafka consumer only, no
-database").
+`OrderStatusChanged` envelopes on the `order-events` domain topic and sends
+the matching customer email for `reservation_failed` / `confirmed` /
+`payment_failed`. No HTTP write API, no customer-facing endpoints — Kafka
+consumer only, per `user-stories.md`'s US-7 framing ("New
+`notification-service`, Kafka consumer only, no database").
 
 Generated via `pure-service-generator` (giter8 template over `purerest`), no
 field-spec applied (`gluon/specs/notification.yaml` doesn't exist — none was
@@ -32,7 +32,7 @@ services-table line is now accurate (it was aspirational before this
 track).
 
 Track `conductor/tracks/consume-order-status_20261003/` (US-7.1, complete)
-built the real `order.status-changed` Kafka consumer on top of this shell:
+built the real Kafka consumer on top of this shell:
 `OrderStatusChangedConsumer` subscribes with null-safe key/value
 deserializers, decodes each event, and dispatches the matching email via a
 stub `EmailClient.logging` (structured log line, no real provider). A
@@ -42,11 +42,19 @@ otherwise. `Main.scala` starts the consumer in the background and serves
 both routes. Verified end-to-end against a real local Kafka broker via
 `scripts/verify-order-status-changed.sh`.
 
+Track `conductor/archive/kafka-envelope_20261011/` (complete) migrated from
+the per-event-type `order.status-changed` topic to the `order-events`
+domain topic (ADR 0009, `gluon/PLAN.md` Rework 2): `OrderStatusChangedConsumer`
+now decodes a shared `EventEnvelope` first and dispatches on
+`eventType == "OrderStatusChanged"`; any other event type on that topic
+(e.g. `OrderReserved`) is silently skipped, not logged as malformed.
+
 ## Domain model
 No domain entity in the CRUD sense — this service has none now that the
-scaffold is stripped (see "Current state" above). The only "model"
-is the consumed event shape — `order.status-changed`, pinned in
-`gluon/docs/system-design.md`'s "Payload contracts":
+scaffold is stripped (see "Current state" above). The only "model" is the
+consumed event shape — the `OrderStatusChanged` payload, carried inside the
+shared envelope on `order-events`, pinned in `gluon/docs/system-design.md`'s
+"Payload contracts":
 ```json
 {
   "orderId": "string (UUID)",
@@ -74,7 +82,11 @@ integrating a real email service.
 
 ## Events
 - Publishes: none
-- Consumes: `order.status-changed`
+- Consumes: `order-events` (eventType `OrderStatusChanged`, wrapped in the
+  shared envelope — one topic per domain, ADR 0009, migrated 2026-10-11,
+  kafka-envelope_20261011; previously the dedicated `order.status-changed`
+  topic. Other event types on `order-events`, e.g. `OrderReserved`, are
+  silently skipped)
 
 ## Out of scope for this service
 - Any HTTP write API / CRUD persistence (removed — see "Current state"
