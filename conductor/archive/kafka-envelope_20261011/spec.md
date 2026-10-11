@@ -43,14 +43,14 @@ must be silently skipped, not logged as malformed).
   runnable here as proof.
 
 ## Acceptance Criteria
-- [ ] `OrderStatusChangedConsumerSuite` rewritten for `order-events` +
+- [x] `OrderStatusChangedConsumerSuite` rewritten for `order-events` +
   envelope (reservation_failed/confirmed/payment_failed emails, malformed
   payload, null value, and a new "ignores a different eventType (e.g.
   OrderReserved)" case) — still `.ignore`'d per the Non-Functional note.
-- [ ] `scripts/verify-order-status-changed.sh` updated to publish
+- [x] `scripts/verify-order-status-changed.sh` updated to publish
   `order-events` envelopes and live-verified against a real docker-compose
   Kafka + notification-service.
-- [ ] Full `sbt test` suite stays green.
+- [x] Full `sbt test` suite stays green (17/17, 6 ignored).
 
 ## Out of Scope
 - Un-ignoring the Kafka integration tests (separate, already-tracked
