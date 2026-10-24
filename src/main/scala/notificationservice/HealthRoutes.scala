@@ -1,36 +1,36 @@
 package notificationservice
 
-import cats.effect.{Async, Ref}
-import cats.syntax.all._
+import cats.effect.Async
 import org.http4s.HttpRoutes
 import sttp.model.StatusCode
 import sttp.tapir._
 import sttp.tapir.server.ServerEndpoint
 import sttp.tapir.server.http4s.Http4sServerInterpreter
 
+/** `/health/ready` always returns 200, same as `/health` - this service has no
+  * DB/store to gate readiness on, and the one thing that previously drove it
+  * (`OrderStatusChangedConsumer`'s hand-rolled `ready` ref, flipped to `false`
+  * on a stream error with no way back) is gone: `purekafka`'s
+  * `StreamSupervisor` (TD-2.3, ADR 0010) now restarts that stream with backoff
+  * instead of leaving it permanently dead, so there's no "stuck forever" state
+  * left to signal. See `KafkaConsumers.scala`.
+  */
 object HealthRoutes {
 
   private val healthEndpoint: PublicEndpoint[Unit, Unit, Unit, Any] =
     endpoint.get.in("health").out(statusCode(StatusCode.Ok))
 
   private val readyEndpoint: PublicEndpoint[Unit, Unit, Unit, Any] =
-    endpoint.get
-      .in("health" / "ready")
-      .out(statusCode(StatusCode.Ok))
-      .errorOut(statusCode(StatusCode.ServiceUnavailable))
+    endpoint.get.in("health" / "ready").out(statusCode(StatusCode.Ok))
 
   def healthServerEndpoint[F[_]: Async]: ServerEndpoint[Any, F] =
     healthEndpoint.serverLogicSuccess[F](_ => Async[F].unit)
 
-  def readyServerEndpoint[F[_]: Async](
-      ready: Ref[F, Boolean]
-  ): ServerEndpoint[Any, F] =
-    readyEndpoint.serverLogic[F] { _ =>
-      ready.get.map(isReady => if (isReady) Right(()) else Left(()))
-    }
+  def readyServerEndpoint[F[_]: Async]: ServerEndpoint[Any, F] =
+    readyEndpoint.serverLogicSuccess[F](_ => Async[F].unit)
 
-  def routes[F[_]: Async](ready: Ref[F, Boolean]): HttpRoutes[F] =
+  def routes[F[_]: Async]: HttpRoutes[F] =
     Http4sServerInterpreter[F]().toRoutes(
-      List(healthServerEndpoint[F], readyServerEndpoint(ready))
+      List(healthServerEndpoint[F], readyServerEndpoint[F])
     )
 }

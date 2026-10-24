@@ -1,7 +1,6 @@
 package notificationservice
 
-import cats.effect.kernel.Resource.ExitCase
-import cats.effect.{Async, Ref}
+import cats.effect.Async
 import cats.syntax.all._
 import fs2.Stream
 import fs2.kafka._
@@ -19,7 +18,9 @@ import org.typelevel.log4cats.StructuredLogger
   * skeleton (no real email provider to worry about double-sending to yet).
   * `order-events` carries other event types (e.g. `OrderReserved`) this
   * consumer doesn't care about - those are silently skipped by `eventType`, not
-  * logged as malformed.
+  * logged as malformed. Stream crash recovery is no longer this consumer's own
+  * concern - `purekafka`'s `StreamSupervisor` (TD-2.3, ADR 0010) handles
+  * restart-with-backoff externally, wired in `KafkaConsumers.scala`.
   */
 object OrderStatusChangedConsumer {
 
@@ -64,8 +65,7 @@ object OrderStatusChangedConsumer {
   def run[F[_]: Async](
       config: KafkaConfig,
       emailClient: EmailClient[F],
-      logger: StructuredLogger[F],
-      ready: Ref[F, Boolean]
+      logger: StructuredLogger[F]
   ): Stream[F, Unit] =
     KafkaConsumer
       .stream(consumerSettings[F](config))
@@ -111,11 +111,5 @@ object OrderStatusChangedConsumer {
             }
         }
         handled *> committable.offset.commit
-      }
-      // Only a genuine crash marks the service unready - normal completion/
-      // cancellation (e.g. shutdown) shouldn't flip /health/ready to 503.
-      .onFinalizeCase {
-        case ExitCase.Errored(_) => ready.set(false)
-        case _                   => Async[F].unit
       }
 }

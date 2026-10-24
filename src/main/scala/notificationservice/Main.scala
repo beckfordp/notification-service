@@ -1,58 +1,52 @@
 package notificationservice
 
-import cats.effect.{IO, IOApp, Ref}
+import cats.effect.{IO, IOApp, Resource}
+import cats.effect.syntax.all._
+import cats.syntax.all._
 import com.comcast.ip4s._
 import org.http4s.ember.server.EmberServerBuilder
-import org.http4s.implicits._
-import purerest.logging.Logging
-import purerest.metrics.{Metrics, ServerMetrics}
-import purerest.tracing.{ServerTracing, Tracing}
 
+/** Acquires every dependency notification-service needs, builds the routes, and
+  * serves them — a single flat `Resource` for-comprehension, one `<-` per
+  * dependency, per the composition pattern documented in `purerest`'s
+  * `docs/functional-design-patterns-scala-haskell-category-theory.md` ("Scaling
+  * tagless final without Cake: bundling dependencies into `Resource`-built
+  * modules"). Mirrors order-service's/payment-service's/inventory-service's own
+  * `Main.scala`.
+  */
 object Main extends IOApp.Simple {
 
-  val run: IO[Unit] =
-    for {
-      config <- NotificationServiceConfig.load[IO]
-      port <- IO.fromOption(Port.fromInt(config.port))(
+  val run: IO[Unit] = (for {
+    config <- Resource.eval(NotificationServiceConfig.load[IO])
+    port <- Resource.eval(
+      IO.fromOption(Port.fromInt(config.port))(
         new IllegalArgumentException(
           s"Invalid notification-service port: ${config.port}"
         )
       )
-      _ <- Tracing.console[IO](config.serviceName).use { tracer =>
-        Metrics.oteljava[IO](config.serviceName, config.metricsPort).use {
-          meter =>
-            for {
-              logger <- Logging.create[IO](tracer, config.serviceName)
-              _ <- logger.info(
-                Map(
-                  "port" -> config.port.toString,
-                  "metrics_port" -> config.metricsPort.toString
-                )
-              )("notification-service starting")
-              readyRef <- Ref.of[IO, Boolean](true)
-              emailClient = EmailClient.logging[IO](logger)
-              _ <- OrderStatusChangedConsumer
-                .run[IO](config.kafka, emailClient, logger, readyRef)
-                .compile
-                .drain
-                .background
-                .use { _ =>
-                  val healthRoutes = HealthRoutes.routes[IO](readyRef)
-                  val tracedRoutes =
-                    ServerTracing.middleware(tracer)(healthRoutes)
-                  val meteredRoutes =
-                    ServerMetrics.middleware[IO](meter)(tracedRoutes)
-                  val routes = Cors.middleware[IO](meteredRoutes)
-                  EmberServerBuilder
-                    .default[IO]
-                    .withHost(host"0.0.0.0")
-                    .withPort(port)
-                    .withHttpApp(routes.orNotFound)
-                    .build
-                    .useForever
-                }
-            } yield ()
-        }
-      }
-    } yield ()
+    )
+    telemetry <- Telemetry.resource[IO](config.serviceName, config.metricsPort)
+    _ <- Resource.eval(
+      telemetry.logger.info(
+        Map(
+          "port" -> config.port.toString,
+          "metrics_port" -> config.metricsPort.toString
+        )
+      )("notification-service starting")
+    )
+    emailClient = EmailClient.logging[IO](telemetry.logger)
+    _ <- OrderStatusChangedConsumer
+      .run[IO](config.kafka, emailClient, telemetry.logger)
+      .compile
+      .drain
+      .background
+      .void
+    routes = AppRoutes.all[IO](telemetry)
+    _ <- EmberServerBuilder
+      .default[IO]
+      .withHost(host"0.0.0.0")
+      .withPort(port)
+      .withHttpApp(routes.orNotFound)
+      .build
+  } yield ()).useForever
 }

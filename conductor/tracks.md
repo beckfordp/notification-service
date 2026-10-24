@@ -2,7 +2,7 @@
 
 This file tracks all major tracks for the project.
 
-- [ ] **Track: purekafka adoption + AsyncAPI docs for notification-service (TD-2.3, TD-2.4, ADR 0010)**
+- [~] **Track: purekafka adoption + AsyncAPI docs for notification-service (TD-2.3, TD-2.4, ADR 0010)**
   *Link: [./tracks/purekafka-adoption_20261024/](./tracks/purekafka-adoption_20261024/)*
 
 ---
