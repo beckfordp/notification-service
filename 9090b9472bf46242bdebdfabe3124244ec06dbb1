@@ -1,0 +1,10 @@
+Phase 1 Verification Report — Main.scala restructure + readiness simplification
+
+Automated test command: sbt scalafmtCheck test
+Result: 16/16 tests passing (6 pre-existing, unrelated tests stay
+.ignore'd), scalafmtCheck clean.
+
+Manual verification: skipped (reduced-prompting mode, .claude/prompt-off) -
+structural refactor + a confirmed design decision (readiness simplification),
+no live server check needed at this phase; Phase 3's end-to-end verify
+script will confirm /health/ready live.
