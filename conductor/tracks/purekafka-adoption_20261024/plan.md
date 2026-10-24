@@ -1,6 +1,6 @@
 # Plan — purekafka adoption + AsyncAPI docs for notification-service (TD-2.3, TD-2.4, ADR 0010)
 
-## Phase 1: Main.scala restructure (Telemetry + AppRoutes) + readiness simplification [checkpoint: PENDING]
+## Phase 1: Main.scala restructure (Telemetry + AppRoutes) + readiness simplification [checkpoint: 9090b94]
 - [x] Task: New `Telemetry.scala`, mirroring the other two tracks `cead625`
 - [x] Task: New `AppRoutes.scala` — health + CORS/tracing/metrics
       assembly only (no business/OpenAPI routes exist here); no AsyncAPI
@@ -20,8 +20,11 @@
 - [x] Task: Run full test suite, confirm no regressions (existing
       `.ignore`'d suite stays ignored/untouched) — 16/16 passing (6
       ignored), scalafmtCheck clean
-- [ ] Task: Conductor - User Manual Verification 'Phase 1: Main.scala
+- [x] Task: Conductor - User Manual Verification 'Phase 1: Main.scala
       restructure + readiness simplification' (Protocol in workflow.md)
+      `9090b94` — reduced-prompting mode: automated-test verification
+      only (16 passed, 6 unrelated pre-existing tests stay ignored), no
+      interactive walkthrough; see git note on `9090b94`
 
 ## Phase 2: StreamSupervisor + DeadLetter adoption (TD-2.3, TD-2.4)
 - [ ] Task: Bump `testcontainersScalaVersion` to `0.44.1` in `build.sbt`
