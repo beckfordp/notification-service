@@ -1,0 +1,8 @@
+{
+  "track_id": "purekafka-adoption_20261024",
+  "type": "feature",
+  "status": "new",
+  "created_at": "2026-10-24T19:30:36Z",
+  "updated_at": "2026-10-24T19:30:36Z",
+  "description": "purekafka adoption + AsyncAPI docs for notification-service (TD-2.3, TD-2.4, ADR 0010). Closes gluon/PLAN.md Rework 3's final 'Adopt across...' gap (3 of 3) and TD-2.3/TD-2.4's notification-service portions. Restructures Main.scala to a Telemetry/AppRoutes/KafkaConsumers shape; replaces the hand-rolled ready: Ref[F, Boolean] readiness mechanism (which the 2026-10-09 stuck-at-503-forever incident exposed as broken) with purekafka's StreamSupervisor (restart-with-backoff, TD-2.3) and DeadLetter (bounded-retry-then-DLQ, TD-2.4); simplifies /health/ready to always-200 since StreamSupervisor structurally fixes the original incident and there's no other dependency to gate on; wires AsyncAPI documentation for the consumed OrderStatusChanged channel. Also bumps testcontainersScalaVersion 0.43.6->0.44.1, fixing this repo's own docker-java/Docker-API-version Testcontainers blocker (diagnosed during scoping) so this track's new KafkaConsumersSuite test can actually run. Does NOT touch/un-ignore the pre-existing OrderStatusChangedConsumerSuite's 6 tests, which have a separate, real cross-test-contamination bug - left for its own backlog item."
+}

@@ -2,6 +2,9 @@
 
 This file tracks all major tracks for the project.
 
+- [ ] **Track: purekafka adoption + AsyncAPI docs for notification-service (TD-2.3, TD-2.4, ADR 0010)**
+  *Link: [./tracks/purekafka-adoption_20261024/](./tracks/purekafka-adoption_20261024/)*
+
 ---
 
 ## Backlog
@@ -11,20 +14,16 @@ folder), so `/conductor:implement` cannot pick these up by accident. Reorder fre
 priorities change. When ready to work on one, run `/conductor:newTrack <title>` to go
 through the spec/plan questions and promote it into a real track above.
 
-- Fix local Testcontainers/Docker-Desktop compatibility (or wire scripts/verify-order-status-changed.sh into CI) so OrderStatusChangedConsumerSuite's Kafka integration tests aren't permanently .ignore'd
-- TD-2.3 / TD-2.4 (ADR 0010): `OrderStatusChangedConsumer` doesn't self-heal
-  from a dropped Kafka connection — found 2026-10-09 restarting OrbStack:
-  every other service's background consumer/publisher recovered on its own
-  once Kafka came back up, but this one's consumer stream permanently flips
-  `readyRef` to `false` on any stream error (`onFinalizeCase`'s
-  `ExitCase.Errored` branch) with no retry/resubscribe, so `/health/ready`
-  stays `503` forever until the whole pod is restarted — only fixed by a
-  manual `kubectl rollout restart`. **Decided fix**: adopt `purekafka`'s
-  stream supervision (restart-with-backoff on any stream error, unbounded
-  attempts) instead of hand-rolling a retry/resubscribe loop, plus
-  dead-letter routing (a message that still fails after retries goes to
-  `<topic>-dlq` instead of crashing or blocking). Requires
-  `io.github.beckfordp:purekafka` published (`sbt publishLocal` in the
-  sibling `purerest` checkout) before this can compile against it.
+- Fix local Testcontainers/Docker-Desktop compatibility (or wire scripts/verify-order-status-changed.sh into CI) so OrderStatusChangedConsumerSuite's Kafka integration tests aren't permanently .ignore'd.
+  Diagnosed 2026-10-24 (`purekafka-adoption_20261024` track scoping):
+  the Docker-API-version half of this is fixed by that track's
+  `testcontainersScalaVersion` 0.43.6→0.44.1 bump (confirmed — containers
+  now actually start). But un-ignoring exposed a *second*, separate bug:
+  all 6 tests share one Kafka container + a fixed consumer group id with
+  `Earliest` offset reset, so a later test consumes an earlier test's
+  leftover message (5 of 6 fail on customer-identity assertions once
+  un-ignored). Deliberately left out of that track's scope. Fix: give
+  each test its own unique consumer group id (or topic), mirroring how
+  other suites avoid this.
 
 ---
