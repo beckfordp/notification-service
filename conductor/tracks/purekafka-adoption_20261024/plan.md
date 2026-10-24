@@ -1,22 +1,25 @@
 # Plan — purekafka adoption + AsyncAPI docs for notification-service (TD-2.3, TD-2.4, ADR 0010)
 
-## Phase 1: Main.scala restructure (Telemetry + AppRoutes) + readiness simplification
-- [ ] Task: New `Telemetry.scala`, mirroring the other two tracks
-- [ ] Task: New `AppRoutes.scala` — health + CORS/tracing/metrics
+## Phase 1: Main.scala restructure (Telemetry + AppRoutes) + readiness simplification [checkpoint: PENDING]
+- [x] Task: New `Telemetry.scala`, mirroring the other two tracks `cead625`
+- [x] Task: New `AppRoutes.scala` — health + CORS/tracing/metrics
       assembly only (no business/OpenAPI routes exist here); no AsyncAPI
-      routes yet (Phase 3)
-- [ ] Task: `HealthRoutes.readyServerEndpoint` drops its `ready: Ref`
+      routes yet (Phase 3) `cead625`
+- [x] Task: `HealthRoutes.readyServerEndpoint` drops its `ready: Ref`
       param, always returns 200; `HealthRoutes.routes` simplified to
-      match
-- [ ] Task: Rewrite `Main.scala` as a flat `Resource` for-comprehension
+      match `cead625`
+- [x] Task: Rewrite `Main.scala` as a flat `Resource` for-comprehension
       calling `AppRoutes.all` (consumer wiring stays inline for now —
       extracted into `KafkaConsumers` in Phase 2, dropping the `readyRef`
-      param it currently passes)
-- [ ] Task: `OrderStatusChangedConsumer.run` drops its
+      param it currently passes) `cead625`
+- [x] Task: `OrderStatusChangedConsumer.run` drops its
       `ready`/`onFinalizeCase` plumbing (no behavior to replace it with
-      — confirmed decision)
-- [ ] Task: Run full test suite, confirm no regressions (existing
-      `.ignore`'d suite stays ignored/untouched)
+      — confirmed decision) `cead625` — also updated the 1 existing
+      (ignored) test call site to the new 3-arg signature; the suite's
+      own cross-test-contamination bug is untouched, still `.ignore`'d
+- [x] Task: Run full test suite, confirm no regressions (existing
+      `.ignore`'d suite stays ignored/untouched) — 16/16 passing (6
+      ignored), scalafmtCheck clean
 - [ ] Task: Conductor - User Manual Verification 'Phase 1: Main.scala
       restructure + readiness simplification' (Protocol in workflow.md)
 
