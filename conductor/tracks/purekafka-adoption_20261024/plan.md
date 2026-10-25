@@ -26,25 +26,32 @@
       only (16 passed, 6 unrelated pre-existing tests stay ignored), no
       interactive walkthrough; see git note on `9090b94`
 
-## Phase 2: StreamSupervisor + DeadLetter adoption (TD-2.3, TD-2.4)
-- [ ] Task: Bump `testcontainersScalaVersion` to `0.44.1` in `build.sbt`
-      (fixes this repo's Docker-API-version Testcontainers blocker)
-- [ ] Task: `KafkaConfig` gains `dlqRetry`/`dlqPublishResilience`/
-      `streamSupervisor` fields + `application.conf` keys
-- [ ] Task: Bump `io.github.beckfordp:purekafka` to 0.2.1
-- [ ] Task: `OrderStatusChangedConsumer.run` gains a `deadLetter:
+## Phase 2: StreamSupervisor + DeadLetter adoption (TD-2.3, TD-2.4) [checkpoint: PENDING]
+- [x] Task: Bump `testcontainersScalaVersion` to `0.44.1` in `build.sbt`
+      (fixes this repo's Docker-API-version Testcontainers blocker) `badefa6`
+- [x] Task: `KafkaConfig` gains `dlqRetry`/`dlqPublishResilience`/
+      `streamSupervisor` fields + `application.conf` keys `badefa6`
+- [x] Task: Bump `io.github.beckfordp:purekafka` to 0.2.1 `badefa6`
+- [x] Task: `OrderStatusChangedConsumer.run` gains a `deadLetter:
       DeadLetter[F, String, String]` param; wrap `handleEvent(...)` in
-      `deadLetter.guard(topic, key, raw)(...)`
-- [ ] Task: New `KafkaConsumers.scala` — wraps
+      `deadLetter.guard(topic, key, raw)(...)` `badefa6` — also updated
+      the 1 existing (ignored) test call site with a no-op `DeadLetter`
+      helper (same `noOpDeadLetter` pattern as order-service's/
+      payment-service's own test suites), purely for compile
+      compatibility; the suite's own bug is untouched, still `.ignore`'d
+- [x] Task: New `KafkaConsumers.scala` — wraps
       `OrderStatusChangedConsumer.run` in `StreamSupervisor.supervise`,
-      backgrounds it
-- [ ] Task: New `KafkaConsumersSuite.scala` (new, isolated file — not
-      touching `OrderStatusChangedConsumerSuite`) — Testcontainers-Kafka
-      test proving a permanently-failing message is routed to
-      `order-events-dlq` and the stream keeps consuming later messages,
-      using its own unique consumer group id to avoid the
-      cross-test-contamination bug found during scoping
-- [ ] Task: Wire `KafkaConsumers.resource` into `Main.scala`
+      backgrounds it `badefa6`
+- [x] Task: New `KafkaConsumersSuite.scala` (new, isolated file — not
+      touching `OrderStatusChangedConsumerSuite`) `badefa6` — deviation:
+      no group-id override needed. The cross-test-contamination risk is
+      specific to multiple tests sharing one container (true of
+      `OrderStatusChangedConsumerSuite`'s 6 tests); this new suite has
+      exactly one test with its own dedicated container
+      (`TestContainerForAll` starts one per class), so the default
+      hardcoded group id is safe as-is - matches payment-service's own
+      `KafkaConsumersSuite` precedent exactly.
+- [x] Task: Wire `KafkaConsumers.resource` into `Main.scala` `badefa6`
 - [ ] Task: Conductor - User Manual Verification 'Phase 2:
       StreamSupervisor + DeadLetter adoption' (Protocol in workflow.md)
 
