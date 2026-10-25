@@ -42,6 +42,26 @@ curl http://localhost:8080/health/ready
 `docker-compose.yml` currently declares no services — a Kafka broker will be added
 there once US-7.1 builds the real consumer.
 
+## View Kafka AsyncAPI docs
+
+`OrderStatusChangedConsumer` consumes `OrderStatusChanged` on `order-events`. That event type
+is registered for [AsyncAPI](https://www.asyncapi.com/) documentation via `purekafka.docs` (see
+`AsyncApiChannels`) — this service has no OpenAPI/Swagger docs (no CRUD API at all), so this is
+its only generated API documentation.
+
+Generation is handled by the `sbt-purekafka-docs` plugin (`asyncApiChannelsClass` in `build.sbt`),
+auto-chained after `Compile / compile` — every `sbt compile`/`run`/`Docker/publishLocal` already
+regenerates both files locally, no running server or manual script needed. Run it directly with:
+```
+sbt asyncApiGenerate
+```
+
+- **Raw spec** — generated at `target/asyncapi-docs-spec/asyncapi.json`; also served live at
+  http://localhost:8080/docs/asyncapi.json while the service is running.
+- **Rendered HTML** — generated at `target/asyncapi-docs/index.html`
+  (`open target/asyncapi-docs/index.html`); also served live at
+  http://localhost:8080/docs/asyncapi/index.html while the service is running.
+
 ## Development guidelines
 
 Extending this service? See [`development-guidelines.md`](./development-guidelines.md) for the
