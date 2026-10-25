@@ -31,6 +31,13 @@
   generated API documentation (no OpenAPI/Swagger, no CRUD API).
   Generation handled by the `sbt-purekafka-docs` plugin, auto-chained
   after `Compile / compile` (ADR 0010).
+- `schemaRegistryCheck` (sbt-purekafka-docs, Rework 5 step 3/ADR 0003) —
+  reuses the same `AsyncApiChannels` registration to check/register the
+  event's JSON Schema against Apicurio Registry, run explicitly (not
+  chained after `compile`): locally against the shared OrbStack instance
+  (`schemaRegistryUrl`'s default), in CI against a throwaway
+  `docker run` Apicurio container (`SCHEMA_REGISTRY_URL` env override —
+  see `ci.yml`). Build/CI-time only, zero runtime presence.
 
 ## Config
 - pureconfig 0.17.10 — typed config from `application.conf` (now just
