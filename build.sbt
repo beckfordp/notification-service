@@ -9,7 +9,20 @@ val log4catsVersion = "2.8.0"
 val tapirVersion = "1.11.25"
 val fs2KafkaVersion = "3.6.0"
 val pureconfigVersion = "0.17.10"
-val testcontainersScalaVersion = "0.43.6"
+// Bumped 0.43.6 -> 0.44.1 (testcontainers-java major version jump) to fix
+// Testcontainers-Kafka startup on this machine's Docker: 0.43.6's shaded
+// docker-java client hardcodes Docker API version 1.32 and ignores
+// DOCKER_API_VERSION/DOCKER_HOST overrides, which a modern Docker Engine
+// (minimum supported API 1.40) rejects outright. Same fix purerest's own
+// build.sbt already applied. Confirmed this bump alone (no code change)
+// lets OrderStatusChangedConsumerSuite's containers actually start - that
+// suite's own tests stay .ignore'd regardless (separate, real cross-test-
+// contamination bug, see conductor/tracks.md's backlog item).
+val testcontainersScalaVersion = "0.44.1"
+// purekafka: Kafka resilience/observability combinators + AsyncAPI docs
+// support (ADR 0010). Pinned to match order-service's/payment-service's/
+// inventory-service's own version.
+val purekafkaVersion = "0.2.1"
 // Pinned to match the purerestlib version this service is built against — see
 // README's "Consuming purerest as a dependency" section.
 val purerestlibVersion = "0.1.0"
@@ -53,6 +66,10 @@ lazy val root = project
       // fs2-kafka: pure-FP, FS2-native Kafka consumer (US-7.1) - subscribes to
       // order.status-changed.
       "com.github.fd4s" %% "fs2-kafka" % fs2KafkaVersion,
+      // purekafka: StreamSupervisor (restart-with-backoff) + DeadLetter
+      // (bounded-retry-then-DLQ) for OrderStatusChangedConsumer (TD-2.3,
+      // TD-2.4, ADR 0010).
+      "io.github.beckfordp" %% "purekafka" % purekafkaVersion,
       // pureconfig: loads application.conf into typed config case classes.
       "com.github.pureconfig" %% "pureconfig-core" % pureconfigVersion,
       // munit: test framework used across this project (Scala-native, no JUnit dependency).

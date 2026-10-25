@@ -13,6 +13,24 @@ class NotificationServiceConfigSuite extends CatsEffectSuite {
       |service-name = "notification-service"
       |kafka {
       |  bootstrap-servers = "localhost:9092"
+      |  dlq-retry {
+      |    max-retries = 3
+      |    base-delay = 200ms
+      |  }
+      |  dlq-publish-resilience {
+      |    retry {
+      |      max-retries = 3
+      |      base-delay = 100ms
+      |    }
+      |    circuit-breaker {
+      |      failure-threshold = 5
+      |      reset-timeout = 30s
+      |    }
+      |  }
+      |  stream-supervisor {
+      |    base-delay = 1s
+      |    max-delay = 30s
+      |  }
       |}
       |""".stripMargin
 

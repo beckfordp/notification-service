@@ -6,21 +6,25 @@ import fs2.Stream
 import fs2.kafka._
 import io.circe.parser.decode
 import org.typelevel.log4cats.StructuredLogger
+import purekafka.consumer.DeadLetter
 
 /** Consumes `OrderStatusChanged` envelopes on `order-events` (US-7.1; migrated
   * to the domain topic + envelope shape per ADR 0009): decodes the envelope,
   * then the event, and sends the matching email via `EmailClient` for each of
-  * the three recognized statuses. No retry on the consume/processing side (a
-  * decode failure is logged and the offset still committed) - same
-  * at-least-once, commit-after-process risk profile as payment-service's own
-  * `OrderReservedConsumer`. No duplicate-delivery guard: a redelivered event
-  * sends a second email for the same order - acceptable for the walking
-  * skeleton (no real email provider to worry about double-sending to yet).
-  * `order-events` carries other event types (e.g. `OrderReserved`) this
-  * consumer doesn't care about - those are silently skipped by `eventType`, not
-  * logged as malformed. Stream crash recovery is no longer this consumer's own
-  * concern - `purekafka`'s `StreamSupervisor` (TD-2.3, ADR 0010) handles
-  * restart-with-backoff externally, wired in `KafkaConsumers.scala`.
+  * the three recognized statuses. A decode failure (null value, envelope, or
+  * payload) is logged and the offset still committed - no retry, an
+  * already-accepted gap. Only the *processing* step (`handleEvent`) is wrapped
+  * in `purekafka.consumer.DeadLetter.guard` (TD-2.4, ADR 0010): bounded retry,
+  * then `order-events-dlq` on exhaustion - mirroring
+  * order-service's/payment-service's own consumers' convention exactly. No
+  * duplicate-delivery guard: a redelivered event sends a second email for the
+  * same order - acceptable for the walking skeleton (no real email provider to
+  * worry about double-sending to yet). `order-events` carries other event types
+  * (e.g. `OrderReserved`) this consumer doesn't care about - those are silently
+  * skipped by `eventType`, not logged as malformed. Stream crash recovery is no
+  * longer this consumer's own concern - `purekafka`'s `StreamSupervisor`
+  * (TD-2.3, ADR 0010) handles restart-with-backoff externally, wired in
+  * `KafkaConsumers.scala`.
   */
 object OrderStatusChangedConsumer {
 
@@ -65,7 +69,8 @@ object OrderStatusChangedConsumer {
   def run[F[_]: Async](
       config: KafkaConfig,
       emailClient: EmailClient[F],
-      logger: StructuredLogger[F]
+      logger: StructuredLogger[F],
+      deadLetter: DeadLetter[F, String, String]
   ): Stream[F, Unit] =
     KafkaConsumer
       .stream(consumerSettings[F](config))
@@ -84,6 +89,8 @@ object OrderStatusChangedConsumer {
               s"Sent OrderStatusChanged email (order_id=${event.orderId}, status=${event.status.asString})"
             )
         }
+
+        val key = committable.record.key.getOrElse("")
 
         val handled: F[Unit] = committable.record.value match {
           case None =>
@@ -106,7 +113,14 @@ object OrderStatusChangedConsumer {
                       Map("raw" -> raw),
                       error
                     )("Failed to decode OrderStatusChanged payload")
-                  case Right(event) => handleEvent(event)
+                  case Right(event) =>
+                    // Decode failures above are a different, already-accepted
+                    // gap (logged and dropped, never retried) - only a
+                    // message that decodes fine but fails *processing* (e.g.
+                    // a transient email-send error) gets the
+                    // bounded-retry-then-DLQ treatment, via
+                    // purekafka.consumer.DeadLetter (TD-2.4, ADR 0010).
+                    deadLetter.guard(topic, key, raw)(handleEvent(event))
                 }
             }
         }

@@ -8,22 +8,51 @@ import io.circe.Json
 import io.circe.syntax._
 import munit.CatsEffectSuite
 import org.typelevel.log4cats.noop.NoOpLogger
+import org.typelevel.otel4s.metrics.Meter
+import purekafka.consumer.DeadLetter
+import purekafka.resilience.{
+  CircuitBreakerConfig,
+  ResilienceConfig,
+  RetryConfig
+}
 
 import java.time.Instant
 import java.util.UUID
 import scala.concurrent.duration._
 
-/** Ignored: Testcontainers/docker-java in this dev environment cannot reach the
-  * local Docker daemon (every client strategy gets a degenerate, all-empty
-  * `/info` response with a 400, even though `docker`/`docker compose`/`curl`
-  * against the same socket all work fine) - a docker-java/Testcontainers
-  * version-vs-Docker-Desktop-version compatibility issue, not a code problem.
-  * Un-ignore once that's resolved; mirrors `OrderReservedConsumerSuite`'s
-  * pattern exactly otherwise.
+/** Ignored: the original Docker-API-version blocker (docker-java hardcoded to
+  * API 1.32, rejected by this machine's Docker ≥ 1.40) was fixed by this
+  * track's `testcontainersScalaVersion` 0.43.6 -> 0.44.1 bump - containers now
+  * actually start. But doing so exposed a *separate*, real bug: all 6 tests
+  * here share one Kafka container + a fixed consumer group id with `Earliest`
+  * offset reset, so a later test consumes an earlier test's leftover message
+  * (5 of 6 fail on customer-identity assertions once un-ignored). Left
+  * `.ignore`'d - fixing that cross-test isolation is its own, separate
+  * backlog item (see `conductor/tracks.md`), out of scope for this track.
+  * `noOpDeadLetter` below exists only so this file keeps compiling against
+  * `OrderStatusChangedConsumer.run`'s new signature (TD-2.4) - not a fix.
   */
 class OrderStatusChangedConsumerSuite
     extends CatsEffectSuite
     with TestContainerForAll {
+
+  /** A `DeadLetter` whose `guard` never actually triggers in these tests -
+    * every `handleEvent` call here succeeds on its first attempt, so this is
+    * only ever a transparent pass-through. `KafkaConsumersSuite` is where DLQ
+    * routing itself (the failure path) is actually exercised.
+    */
+  private def noOpDeadLetter: IO[DeadLetter[IO, String, String]] = {
+    import org.typelevel.otel4s.metrics.Meter.Implicits.noop
+    DeadLetter.fromPublish[IO, String, String](
+      RetryConfig(maxRetries = 0, baseDelay = 1.milli),
+      ResilienceConfig(
+        retry = RetryConfig(maxRetries = 0, baseDelay = 1.milli),
+        circuitBreaker =
+          CircuitBreakerConfig(failureThreshold = 100, resetTimeout = 1.second)
+      ),
+      (_, _, _) => IO.unit
+    )(NoOpLogger[IO])(summon[Meter[IO]])
+  }
 
   override val containerDef: KafkaContainer.Def = KafkaContainer.Def()
 
@@ -122,6 +151,7 @@ class OrderStatusChangedConsumerSuite
     val config = configFor(kafka)
     for {
       emailsRef <- Ref.of[IO, List[SentEmail]](Nil)
+      deadLetter <- noOpDeadLetter
       _ <- produce(
         config,
         ev.orderId,
@@ -129,7 +159,12 @@ class OrderStatusChangedConsumerSuite
       )
       raced <- IO.race(
         OrderStatusChangedConsumer
-          .run[IO](config, fakeEmailClient(emailsRef), NoOpLogger[IO])
+          .run[IO](
+            config,
+            fakeEmailClient(emailsRef),
+            NoOpLogger[IO],
+            deadLetter
+          )
           .compile
           .drain,
         awaitEmails(emailsRef, 1)

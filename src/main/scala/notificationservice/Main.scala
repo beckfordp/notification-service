@@ -1,8 +1,6 @@
 package notificationservice
 
 import cats.effect.{IO, IOApp, Resource}
-import cats.effect.syntax.all._
-import cats.syntax.all._
 import com.comcast.ip4s._
 import org.http4s.ember.server.EmberServerBuilder
 
@@ -35,12 +33,12 @@ object Main extends IOApp.Simple {
       )("notification-service starting")
     )
     emailClient = EmailClient.logging[IO](telemetry.logger)
-    _ <- OrderStatusChangedConsumer
-      .run[IO](config.kafka, emailClient, telemetry.logger)
-      .compile
-      .drain
-      .background
-      .void
+    _ <- KafkaConsumers.resource[IO](
+      config.kafka,
+      emailClient,
+      telemetry.logger,
+      telemetry.meter
+    )
     routes = AppRoutes.all[IO](telemetry)
     _ <- EmberServerBuilder
       .default[IO]
