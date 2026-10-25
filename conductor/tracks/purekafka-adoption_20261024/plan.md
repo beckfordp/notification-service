@@ -58,18 +58,29 @@
       only (17 passed, including a real Testcontainers-Kafka DLQ-routing
       test), no interactive walkthrough; see git note on `0528d48`
 
-## Phase 3: AsyncAPI docs
-- [ ] Task: Add tapir `Schema.derived` to `OrderStatusChangedEvent`
-- [ ] Task: New `AsyncApiChannels.scala` — `OrderStatusChangedEvent` on
-      `order-events` (`Subscribe`)
-- [ ] Task: `project/plugins.sbt` + `build.sbt` — `sbt-purekafka-docs`/
-      `PureKafkaDocsPlugin` wiring
-- [ ] Task: `AppRoutes.scala` gains the raw-spec + static-HTML AsyncAPI
+## Phase 3: AsyncAPI docs [checkpoint: PENDING]
+- [x] Task: Add tapir `Schema.derived` to `OrderStatusChangedEvent`
+      `cf3f4b7` — deviation: `status: OrderStatusChanged` is a real ADT
+      (not a plain `String` like order-service's own copy of this
+      event), so `Schema.derived` alone would misdocument it as a
+      coproduct/oneOf object. Wrote an explicit
+      `Schema.string[OrderStatusChanged]` + `Validator.enumeration`
+      (confirmed `Schema.string[T]` exists in tapir-core's `Schema.scala`)
+      instead, matching order-service's enum-validator technique adapted
+      for a real sealed trait instead of a plain String field.
+- [x] Task: New `AsyncApiChannels.scala` — `OrderStatusChangedEvent` on
+      `order-events` (`Subscribe`) `cf3f4b7`
+- [x] Task: `project/plugins.sbt` + `build.sbt` — `sbt-purekafka-docs`/
+      `PureKafkaDocsPlugin` wiring `cf3f4b7`
+- [x] Task: `AppRoutes.scala` gains the raw-spec + static-HTML AsyncAPI
       routes (same route-ordering fix), `channels` param added to
-      `AppRoutes.all`
-- [ ] Task: Adapt `verify-kafka-asyncapi-docs.sh` (own port; confirms
+      `AppRoutes.all` `cf3f4b7`
+- [x] Task: Adapt `verify-kafka-asyncapi-docs.sh` (own port; confirms
       `/health/ready` returns 200 as part of its readiness-wait step)
-- [ ] Task: README "View Kafka AsyncAPI docs" section
-- [ ] Task: Run full test suite + verify script end-to-end
+      `cf3f4b7`
+- [x] Task: README "View Kafka AsyncAPI docs" section `cf3f4b7`
+- [x] Task: Run full test suite + verify script end-to-end — 17/17
+      passing, scalafmtCheck clean, verify script all green (build-time
+      generation + live raw-spec + live static HTML + /health/ready 200)
 - [ ] Task: Conductor - User Manual Verification 'Phase 3: AsyncAPI
       docs' (Protocol in workflow.md)
