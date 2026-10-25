@@ -1,0 +1,14 @@
+Phase 2 Verification Report — StreamSupervisor + DeadLetter adoption
+
+Automated test command: sbt scalafmtCheck test
+Result: 17/17 tests passing (including KafkaConsumersSuite's real
+Testcontainers-Kafka DLQ-routing test; 6 unrelated pre-existing tests stay
+.ignore'd), scalafmtCheck clean.
+
+Manual verification: skipped (reduced-prompting mode, .claude/prompt-off) -
+the new KafkaConsumersSuite test already exercises real Kafka end-to-end
+(poison message routed to order-events-dlq, healthy message still sends
+its email), which is more rigorous than a manual walkthrough would add.
+This also confirms the testcontainersScalaVersion 0.44.1 bump actually
+fixes the Docker-API-version blocker for this repo's own Testcontainers
+usage.
