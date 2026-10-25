@@ -25,11 +25,11 @@ import scala.concurrent.duration._
   * track's `testcontainersScalaVersion` 0.43.6 -> 0.44.1 bump - containers now
   * actually start. But doing so exposed a *separate*, real bug: all 6 tests
   * here share one Kafka container + a fixed consumer group id with `Earliest`
-  * offset reset, so a later test consumes an earlier test's leftover message
-  * (5 of 6 fail on customer-identity assertions once un-ignored). Left
-  * `.ignore`'d - fixing that cross-test isolation is its own, separate
-  * backlog item (see `conductor/tracks.md`), out of scope for this track.
-  * `noOpDeadLetter` below exists only so this file keeps compiling against
+  * offset reset, so a later test consumes an earlier test's leftover message (5
+  * of 6 fail on customer-identity assertions once un-ignored). Left `.ignore`'d -
+  * fixing that cross-test isolation is its own, separate backlog item (see
+  * `conductor/tracks.md`), out of scope for this track. `noOpDeadLetter` below
+  * exists only so this file keeps compiling against
   * `OrderStatusChangedConsumer.run`'s new signature (TD-2.4) - not a fix.
   */
 class OrderStatusChangedConsumerSuite

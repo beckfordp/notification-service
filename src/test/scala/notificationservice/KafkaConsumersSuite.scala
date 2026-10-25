@@ -25,11 +25,11 @@ import scala.jdk.CollectionConverters._
   * already proven by `purekafka`'s own `StreamSupervisorSuite` against a
   * synthetic `Stream[F, O]` — re-proving that generic mechanism again here,
   * through this thin single-consumer wrapper, would add no wiring-specific
-  * value. Only the DLQ-routing test is adapted, mirroring payment-service's
-  * own `KafkaConsumersSuite`. This test class gets its own fresh Testcontainers
+  * value. Only the DLQ-routing test is adapted, mirroring payment-service's own
+  * `KafkaConsumersSuite`. This test class gets its own fresh Testcontainers
   * Kafka instance (one per class, per `TestContainerForAll`) and has exactly
-  * one test, so there's no risk of the cross-test message leakage found in
-  * the *separate*, still-`.ignore`'d `OrderStatusChangedConsumerSuite` (which
+  * one test, so there's no risk of the cross-test message leakage found in the
+  * *separate*, still-`.ignore`'d `OrderStatusChangedConsumerSuite` (which
   * shares one container across 6 tests) — no group-id override needed here.
   */
 class KafkaConsumersSuite extends CatsEffectSuite with TestContainerForAll {

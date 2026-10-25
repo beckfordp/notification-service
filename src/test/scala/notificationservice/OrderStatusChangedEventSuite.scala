@@ -31,7 +31,10 @@ class OrderStatusChangedEventSuite extends CatsEffectSuite {
 
   test("fails to decode an unrecognized status") {
     val result = decode[OrderStatusChangedEvent](jsonFor("pending"))
-    assert(result.isLeft, s"expected a decode failure for 'pending', got $result")
+    assert(
+      result.isLeft,
+      s"expected a decode failure for 'pending', got $result"
+    )
   }
 
   test("round-trips through encode/decode") {

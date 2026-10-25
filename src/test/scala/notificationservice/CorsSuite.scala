@@ -20,7 +20,9 @@ class CorsSuite extends CatsEffectSuite {
       .putHeaders(Header.Raw(ci"Origin", "http://example.com"))
     for {
       response <- corsRoutes.orNotFound.run(request)
-    } yield assert(response.headers.get(ci"Access-Control-Allow-Origin").isDefined)
+    } yield assert(
+      response.headers.get(ci"Access-Control-Allow-Origin").isDefined
+    )
   }
 
   test(
@@ -38,7 +40,9 @@ class CorsSuite extends CatsEffectSuite {
     } yield {
       assert(response.status.isSuccess)
       assert(allowMethods.exists(_.head.value.contains("POST")))
-      assert(allowHeaders.exists(_.head.value.toLowerCase.contains("content-type")))
+      assert(
+        allowHeaders.exists(_.head.value.toLowerCase.contains("content-type"))
+      )
     }
   }
 

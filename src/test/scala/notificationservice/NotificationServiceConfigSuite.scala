@@ -71,7 +71,10 @@ class NotificationServiceConfigSuite extends CatsEffectSuite {
       assertEquals(config.port, 8080)
       assertEquals(config.metricsPort, 9090)
       assertEquals(config.serviceName, "notification-service")
-      assertEquals(config.kafka, KafkaConfig(bootstrapServers = "localhost:9092"))
+      assertEquals(
+        config.kafka,
+        KafkaConfig(bootstrapServers = "localhost:9092")
+      )
     }
   }
 }
