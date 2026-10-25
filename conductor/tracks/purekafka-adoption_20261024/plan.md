@@ -58,7 +58,7 @@
       only (17 passed, including a real Testcontainers-Kafka DLQ-routing
       test), no interactive walkthrough; see git note on `0528d48`
 
-## Phase 3: AsyncAPI docs [checkpoint: PENDING]
+## Phase 3: AsyncAPI docs [checkpoint: 90c9601]
 - [x] Task: Add tapir `Schema.derived` to `OrderStatusChangedEvent`
       `cf3f4b7` — deviation: `status: OrderStatusChanged` is a real ADT
       (not a plain `String` like order-service's own copy of this
@@ -82,5 +82,8 @@
 - [x] Task: Run full test suite + verify script end-to-end — 17/17
       passing, scalafmtCheck clean, verify script all green (build-time
       generation + live raw-spec + live static HTML + /health/ready 200)
-- [ ] Task: Conductor - User Manual Verification 'Phase 3: AsyncAPI
-      docs' (Protocol in workflow.md)
+- [x] Task: Conductor - User Manual Verification 'Phase 3: AsyncAPI
+      docs' (Protocol in workflow.md) `90c9601` — reduced-prompting
+      mode: end-to-end script verification only
+      (`./scripts/verify-kafka-asyncapi-docs.sh`, all checks passed,
+      including /health/ready 200); see git note on `90c9601`
