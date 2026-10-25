@@ -1,0 +1,17 @@
+Phase 3 Verification Report — AsyncAPI docs
+
+Automated + end-to-end verification command: ./scripts/verify-kafka-asyncapi-docs.sh
+Result: all checks passed - build-time spec/HTML generation (sbt
+asyncApiGenerate), live raw-spec route (/docs/asyncapi.json), live static
+HTML route (/docs/asyncapi/), OrderStatusChanged present throughout, and
+/health/ready returns 200 (confirms TD-2.3's readiness simplification live).
+
+Manual verification: this script run IS the manual-verification substitute
+(reduced-prompting mode, .claude/prompt-off) - a real end-to-end check
+against a running instance + docker compose (kafka), not an interactive
+walkthrough.
+
+Track complete - this closes the notification-service portion of
+gluon/PLAN.md Rework 3's "Adopt across..." bullet (3 of 3, now fully done)
+and TD-2.3/TD-2.4's notification-service gaps (TD-2.4 now 4 of 4, fully
+done).
