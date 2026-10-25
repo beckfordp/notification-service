@@ -87,3 +87,6 @@
       mode: end-to-end script verification only
       (`./scripts/verify-kafka-asyncapi-docs.sh`, all checks passed,
       including /health/ready 200); see git note on `90c9601`
+
+## Phase: Review Fixes
+- [x] Task: Apply review suggestions `6e41a97`
