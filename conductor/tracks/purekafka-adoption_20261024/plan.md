@@ -26,7 +26,7 @@
       only (16 passed, 6 unrelated pre-existing tests stay ignored), no
       interactive walkthrough; see git note on `9090b94`
 
-## Phase 2: StreamSupervisor + DeadLetter adoption (TD-2.3, TD-2.4) [checkpoint: PENDING]
+## Phase 2: StreamSupervisor + DeadLetter adoption (TD-2.3, TD-2.4) [checkpoint: 0528d48]
 - [x] Task: Bump `testcontainersScalaVersion` to `0.44.1` in `build.sbt`
       (fixes this repo's Docker-API-version Testcontainers blocker) `badefa6`
 - [x] Task: `KafkaConfig` gains `dlqRetry`/`dlqPublishResilience`/
@@ -52,8 +52,11 @@
       hardcoded group id is safe as-is - matches payment-service's own
       `KafkaConsumersSuite` precedent exactly.
 - [x] Task: Wire `KafkaConsumers.resource` into `Main.scala` `badefa6`
-- [ ] Task: Conductor - User Manual Verification 'Phase 2:
+- [x] Task: Conductor - User Manual Verification 'Phase 2:
       StreamSupervisor + DeadLetter adoption' (Protocol in workflow.md)
+      `0528d48` — reduced-prompting mode: automated-test verification
+      only (17 passed, including a real Testcontainers-Kafka DLQ-routing
+      test), no interactive walkthrough; see git note on `0528d48`
 
 ## Phase 3: AsyncAPI docs
 - [ ] Task: Add tapir `Schema.derived` to `OrderStatusChangedEvent`
