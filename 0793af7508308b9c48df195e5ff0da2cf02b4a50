@@ -1,0 +1,10 @@
+Phase 1: Local sbt wiring + verification against the real OrbStack Apicurio instance — reduced-prompting mode (prompt-off): automated-test + verify-script verification only, no interactive walkthrough.
+
+- scalafmtCheck; Test/scalafmtCheck; test: clean, exit 0, no regressions
+  (after fixing pre-existing, unrelated scalafmt drift in 5 test files;
+  2 tests remain .ignore'd, a separate pre-existing backlog item).
+- scripts/verify-schema-registry-check.sh: all checks passed against the
+  real local Apicurio instance — the one real channel registered under
+  the real 'notification-service' group; second identical run a no-op.
+- Reused the prior three services' settled design verbatim: no new
+  design questions asked.
