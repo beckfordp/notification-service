@@ -28,7 +28,7 @@
       verification only, no interactive walkthrough; see git note on
       `0793af7`
 
-## Phase 2: Real CI wiring [checkpoint: TBD]
+## Phase 2: Real CI wiring [checkpoint: 7e70f2c]
 - [x] Task: Add the same `docker run` Apicurio CI step shape as the
       prior services' `ci.yml` to this repo's `ci.yml` `ec2a58b`
 - [x] Task: Push this branch and confirm the new CI step passes on a
