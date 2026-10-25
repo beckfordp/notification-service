@@ -24,6 +24,13 @@
   `purerest.docs.Docs` (removed along with the CRUD surface — nothing left
   to document); `/docs` returns 404 until a new route exists worth
   documenting
+- purekafka.docs (`AsyncApiChannel`/`Docs`) — generates AsyncAPI
+  documentation for the consumed `OrderStatusChanged` channel
+  (`AsyncApiChannels`), served at `/docs/asyncapi.json` (raw spec) and
+  `/docs/asyncapi` (rendered static HTML) — this service's only
+  generated API documentation (no OpenAPI/Swagger, no CRUD API).
+  Generation handled by the `sbt-purekafka-docs` plugin, auto-chained
+  after `Compile / compile` (ADR 0010).
 
 ## Config
 - pureconfig 0.17.10 — typed config from `application.conf` (now just
@@ -43,12 +50,17 @@
 - log4cats-testing 2.8.0 — assert on structured log output
 - scalafmt (default Scala 3 style) — `sbt scalafmtCheck test` run in CI
 - testcontainers-scala-kafka — added for US-7.1's consumer integration
-  tests (`OrderStatusChangedConsumerSuite`). Currently `.ignore`'d in this
-  dev environment: a docker-java/Testcontainers-vs-local-Docker-Desktop
-  version incompatibility makes every client strategy get a degenerate
-  `/info` response, even though `docker`/`docker compose`/`curl` against
-  the same socket all work fine — not a code problem. Un-ignore once
-  resolved.
+  tests (`OrderStatusChangedConsumerSuite`). The original
+  Docker-API-version blocker (docker-java hardcoded to API 1.32,
+  rejected by this machine's Docker ≥ 1.40) was fixed 2026-10-24 by
+  bumping `testcontainersScalaVersion` to 0.44.1 (same fix `purerest`'s
+  own build.sbt already applied) — containers now actually start. But
+  that exposed a *separate*, real bug: all 6 of that suite's tests share
+  one container + a fixed consumer group id with `Earliest` offset
+  reset, so a later test consumes an earlier test's leftover message.
+  Still `.ignore`'d — see `conductor/tracks.md`'s backlog item. The
+  newer, separate `KafkaConsumersSuite` (one test, its own container)
+  isn't affected and runs normally.
 
 ## Packaging / local deploy
 - sbt-native-packager (`JavaAppPackaging`, `DockerPlugin`)
@@ -59,17 +71,21 @@
 
 ## Messaging
 - fs2-kafka 3.6.0 — consumer side only (no publish side for this
-  service). `OrderStatusChangedConsumer` subscribes to
-  `order.status-changed` with null-safe `Deserializer.option` for both
-  key and value from the start (mirrors payment-service's
-  `OrderReservedConsumer`, which already fixed the plain-`String`-
-  deserializer-throws-on-null bug that order-service's `StockEventConsumer`
-  still has). Group id `notification-service-order-status-changed`.
-  At-least-once, commit-after-process, no retry on the consume side.
-- Readiness: a shared `Ref[F, Boolean]` flips to `false` via the
-  consumer stream's `.onFinalizeCase`, only on an `Errored` exit (not
-  ordinary cancellation/shutdown). `HealthRoutes.readyServerEndpoint`
-  reads it and returns `200`/`503` accordingly.
+  service). `OrderStatusChangedConsumer` subscribes to `order-events`
+  with null-safe `Deserializer.option` for both key and value from the
+  start. Group id `notification-service-order-events` (corrected from a
+  stale note here naming a different, never-actual id).
+- purekafka (`io.github.beckfordp`) — `consumer.StreamSupervisor` wraps
+  the consumer's stream (restart-with-backoff) and `consumer.DeadLetter`
+  wraps its per-message processing (bounded retry, then routes to
+  `order-events-dlq` on exhaustion) — TD-2.3/TD-2.4, ADR 0010. Wired in
+  `KafkaConsumers.supervised`. Replaces the old hand-rolled `readyRef`/
+  `onFinalizeCase` restart signal (found broken 2026-10-09 — stuck at
+  503 forever after a dropped connection) entirely.
+- Readiness: `/health/ready` now always returns `200`, same as
+  `/health` — there's no DB/store to gate on, and `StreamSupervisor`
+  structurally eliminates the "stuck forever" state the old mechanism
+  existed to signal.
 - Email: no real provider decided yet (per PLAN.md Phase 5) —
   `EmailClient.logging` stubs the send as a structured log line.
 

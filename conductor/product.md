@@ -49,6 +49,18 @@ now decodes a shared `EventEnvelope` first and dispatches on
 `eventType == "OrderStatusChanged"`; any other event type on that topic
 (e.g. `OrderReserved`) is silently skipped, not logged as malformed.
 
+Track `conductor/archive/purekafka-adoption_20261024/` (TD-2.3/TD-2.4, ADR 0010,
+complete) replaced the `readyRef`/`onFinalizeCase` mechanism above entirely:
+`OrderStatusChangedConsumer` is now wrapped in `purekafka`'s `StreamSupervisor`
+(restart-with-backoff) and `DeadLetter` (bounded-retry-then-`order-events-dlq`),
+via the new `KafkaConsumers.supervised` — closing the 2026-10-09 incident where a
+dropped Kafka connection left `/health/ready` stuck at `503` forever, only fixed
+by a manual `kubectl rollout restart`. `/health/ready` now always returns `200`
+(same as `/health`) — there's no DB/store to gate on, and `StreamSupervisor`
+structurally eliminates the "stuck forever" state the old mechanism existed to
+signal. Also added AsyncAPI documentation for the consumed `OrderStatusChanged`
+channel (`AsyncApiChannels`, served at `/docs/asyncapi.json`/`/docs/asyncapi`).
+
 ## Domain model
 No domain entity in the CRUD sense — this service has none now that the
 scaffold is stripped (see "Current state" above). The only "model" is the
