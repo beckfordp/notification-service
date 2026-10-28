@@ -44,10 +44,11 @@ there once US-7.1 builds the real consumer.
 
 ## View Kafka AsyncAPI docs
 
-`OrderStatusChangedConsumer` consumes `OrderStatusChanged` on `order-events`. That event type
-is registered for [AsyncAPI](https://www.asyncapi.com/) documentation via `purekafka.docs` (see
-`AsyncApiChannels`) — this service has no OpenAPI/Swagger docs (no CRUD API at all), so this is
-its only generated API documentation.
+`OrderStatusChangedConsumer` consumes `OrderStatusChanged` on `order-events`, and
+`UserRegisteredConsumer` consumes `UserRegistered` on `user-events` (sending the welcome
+email). Both are registered for [AsyncAPI](https://www.asyncapi.com/) documentation via
+`purekafka.docs` (see `AsyncApiChannels`) — this service has no OpenAPI/Swagger docs (no CRUD
+API at all), so this is its only generated API documentation.
 
 Generation is handled by the `sbt-purekafka-docs` plugin (`asyncApiChannelsClass` in `build.sbt`),
 auto-chained after `Compile / compile` — every `sbt compile`/`run`/`Docker/publishLocal` already

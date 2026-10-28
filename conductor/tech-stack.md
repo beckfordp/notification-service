@@ -25,8 +25,9 @@
   to document); `/docs` returns 404 until a new route exists worth
   documenting
 - purekafka.docs (`AsyncApiChannel`/`Docs`) — generates AsyncAPI
-  documentation for the consumed `OrderStatusChanged` channel
-  (`AsyncApiChannels`), served at `/docs/asyncapi.json` (raw spec) and
+  documentation for both consumed channels (`OrderStatusChanged` on
+  `order-events`, `UserRegistered` on `user-events`; `AsyncApiChannels`),
+  served at `/docs/asyncapi.json` (raw spec) and
   `/docs/asyncapi` (rendered static HTML) — this service's only
   generated API documentation (no OpenAPI/Swagger, no CRUD API).
   Generation handled by the `sbt-purekafka-docs` plugin, auto-chained
@@ -83,10 +84,11 @@
   start. Group id `notification-service-order-events` (corrected from a
   stale note here naming a different, never-actual id).
 - purekafka (`io.github.beckfordp`) — `consumer.StreamSupervisor` wraps
-  the consumer's stream (restart-with-backoff) and `consumer.DeadLetter`
+  each consumer's stream (restart-with-backoff) and `consumer.DeadLetter`
   wraps its per-message processing (bounded retry, then routes to
-  `order-events-dlq` on exhaustion) — TD-2.3/TD-2.4, ADR 0010. Wired in
-  `KafkaConsumers.supervised`. Replaces the old hand-rolled `readyRef`/
+  `order-events-dlq` / `user-events-dlq` on exhaustion) — TD-2.3/TD-2.4,
+  ADR 0010. `KafkaConsumers.supervised` merges the two supervised streams
+  so a crash in one never restarts the other. Replaces the old hand-rolled `readyRef`/
   `onFinalizeCase` restart signal (found broken 2026-10-09 — stuck at
   503 forever after a dropped connection) entirely.
 - Readiness: `/health/ready` now always returns `200`, same as

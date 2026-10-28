@@ -1,34 +1,31 @@
 package notificationservice
 
 import munit.FunSuite
-import purekafka.docs.{AsyncApiChannel, ChannelDirection}
+import purekafka.docs.ChannelDirection
 
 class AsyncApiChannelsSuite extends FunSuite {
 
   test(
-    "AsyncApiChannel constructs for notification-service's one registered event type"
+    "AsyncApiChannels.channels registers both consumed event types as Subscribe"
   ) {
-    val orderStatusChanged =
-      AsyncApiChannel[OrderStatusChangedEvent](
-        topic = "order-events",
-        eventType = "OrderStatusChanged"
-      )
+    val channels = AsyncApiChannels.channels.map(c =>
+      (c.topic, c.eventType, c.direction)
+    ).toSet
 
-    assertEquals(orderStatusChanged.topic, "order-events")
-  }
-
-  test(
-    "AsyncApiChannels.channels registers OrderStatusChanged on order-events, as Subscribe"
-  ) {
-    assertEquals(AsyncApiChannels.channels.length, 1)
-
-    val channel = AsyncApiChannels.channels.head
-    assertEquals(channel.topic, "order-events")
-    assertEquals(channel.eventType, "OrderStatusChanged")
     assertEquals(
-      channel.direction,
-      ChannelDirection.Subscribe: ChannelDirection,
-      "expected OrderStatusChanged to be Subscribe-only - notification-service only consumes it, no producer side at all"
+      channels,
+      Set(
+        (
+          "order-events",
+          "OrderStatusChanged",
+          ChannelDirection.Subscribe: ChannelDirection
+        ),
+        (
+          "user-events",
+          "UserRegistered",
+          ChannelDirection.Subscribe: ChannelDirection
+        )
+      )
     )
   }
 }

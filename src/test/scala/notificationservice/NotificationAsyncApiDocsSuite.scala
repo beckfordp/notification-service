@@ -24,6 +24,7 @@ class NotificationAsyncApiDocsSuite extends CatsEffectSuite {
     } yield {
       assertEquals(response.status, Status.Ok)
       assert(clue(body).contains("OrderStatusChanged"))
+      assert(clue(body).contains("UserRegistered"))
     }
   }
 

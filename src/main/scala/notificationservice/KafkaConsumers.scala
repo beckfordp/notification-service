@@ -32,22 +32,38 @@ object KafkaConsumers {
         .withBootstrapServers(config.bootstrapServers)
 
     for {
-      deadLetter <- Stream.resource(
+      orderDeadLetter <- Stream.resource(
         DeadLetter.resource[F, String, String](
           config.dlqRetry,
           config.dlqPublishResilience,
           dlqProducerSettings
         )(logger)(meter)
       )
-      result <- StreamSupervisor.supervise[F, Unit](config.streamSupervisor)(
-        logger
-      )(meter)(
-        Async[F].pure(
-          OrderStatusChangedConsumer
-            .run[F](config, emailClient, logger, deadLetter)
-        )
+      userDeadLetter <- Stream.resource(
+        DeadLetter.resource[F, String, String](
+          config.dlqRetry,
+          config.dlqPublishResilience,
+          dlqProducerSettings
+        )(logger)(meter)
       )
-    } yield result
+      merged <- StreamSupervisor
+        .supervise[F, Unit](config.streamSupervisor)(logger)(meter)(
+          Async[F].pure(
+            OrderStatusChangedConsumer
+              .run[F](config, emailClient, logger, orderDeadLetter)
+          )
+        )
+        .merge(
+          StreamSupervisor.supervise[F, Unit](config.streamSupervisor)(
+            logger
+          )(meter)(
+            Async[F].pure(
+              UserRegisteredConsumer
+                .run[F](config, emailClient, logger, userDeadLetter)
+            )
+          )
+        )
+    } yield merged
   }
 
   /** `supervised`, backgrounded as a fire-and-forget fiber - so `Main` wires

@@ -49,6 +49,14 @@ now decodes a shared `EventEnvelope` first and dispatches on
 `eventType == "OrderStatusChanged"`; any other event type on that topic
 (e.g. `OrderReserved`) is silently skipped, not logged as malformed.
 
+Track `welcome-email_20261028` (US-16.4, complete) added
+`UserRegisteredConsumer` on `user-events` (group
+`notification-service-user-events`), which sends the welcome email to the
+event's `email` via the same stubbed `EmailClient`. It is supervised and
+DLQ-wrapped (`user-events-dlq`) independently of the order-status consumer;
+`KafkaConsumers` merges the two supervised streams. A redelivery sends a
+duplicate welcome email (accepted, no datastore).
+
 Track `conductor/archive/purekafka-adoption_20261024/` (TD-2.3/TD-2.4, ADR 0010,
 complete) replaced the `readyRef`/`onFinalizeCase` mechanism above entirely:
 `OrderStatusChangedConsumer` is now wrapped in `purekafka`'s `StreamSupervisor`
