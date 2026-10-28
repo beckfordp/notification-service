@@ -36,13 +36,6 @@ publish() {
     /opt/kafka/bin/kafka-console-producer.sh --bootstrap-server localhost:9092 \
     --topic fulfilment-events >/dev/null
 }
-envelope() {
-  python3 -c "
-import json,uuid,sys
-order=sys.argv[1]; etype=sys.argv[2]; payload=json.loads(sys.argv[3])
-print(json.dumps({'eventId':str(uuid.uuid4()),'eventType':etype,'timestamp':'2026-10-28T12:00:00Z','source':'verify-script','correlationId':order,'payload':payload}))" "$1" "$2" "$3"
-}
-
 echo "== fulfilment emails live verification =="
 start_pf order-service 18080
 start_pf payment-service 18081
@@ -55,11 +48,17 @@ wait_ready "$FULFILMENT_URL" fulfilment-service
 
 echo "-- synthetic shipped + failed emails --"
 SYNTH_OK="synthetic-$(python3 -c 'import uuid; print(uuid.uuid4())')"
-publish "$(envelope "$SYNTH_OK" DispatchConfirmed "{\"orderId\":\"$SYNTH_OK\",\"trackingNo\":\"GLN-SYNTH\",\"items\":[{\"sku\":\"sku-1\",\"productName\":\"Watch\",\"quantity\":1,\"unitPriceCents\":100}]}")"
+EVENT_OK="$(python3 -c "
+import json,uuid
+print(json.dumps({'eventId':str(uuid.uuid4()),'eventType':'DispatchConfirmed','timestamp':'2026-10-28T12:00:00Z','source':'verify-script','correlationId':'$SYNTH_OK','payload':{'orderId':'$SYNTH_OK','trackingNo':'GLN-SYNTH','items':[{'sku':'sku-1','productName':'Watch','quantity':1,'unitPriceCents':100}]}}))")"
+publish "$EVENT_OK"
 wait_log "order_id=$SYNTH_OK"
 logs | grep "order_id=$SYNTH_OK" | grep -q "outcome=shipped" || { echo "FAIL: no shipped log for $SYNTH_OK" >&2; exit 1; }
 SYNTH_FAIL="synthetic-$(python3 -c 'import uuid; print(uuid.uuid4())')"
-publish "$(envelope "$SYNTH_FAIL" DispatchFailed "{\"orderId\":\"$SYNTH_FAIL\",\"reason\":\"damaged\"}")"
+EVENT_FAIL="$(python3 -c "
+import json,uuid
+print(json.dumps({'eventId':str(uuid.uuid4()),'eventType':'DispatchFailed','timestamp':'2026-10-28T12:00:00Z','source':'verify-script','correlationId':'$SYNTH_FAIL','payload':{'orderId':'$SYNTH_FAIL','reason':'damaged'}}))")"
+publish "$EVENT_FAIL"
 wait_log "order_id=$SYNTH_FAIL"
 logs | grep "order_id=$SYNTH_FAIL" | grep -q "outcome=dispatch_failed" || { echo "FAIL: no failed log for $SYNTH_FAIL" >&2; exit 1; }
 echo "   shipped + dispatch_failed stub logs observed"
