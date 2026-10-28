@@ -44,9 +44,10 @@ there once US-7.1 builds the real consumer.
 
 ## View Kafka AsyncAPI docs
 
-`OrderStatusChangedConsumer` consumes `OrderStatusChanged` on `order-events`, and
-`UserRegisteredConsumer` consumes `UserRegistered` on `user-events` (sending the welcome
-email). Both are registered for [AsyncAPI](https://www.asyncapi.com/) documentation via
+`OrderStatusChangedConsumer` consumes `OrderStatusChanged` on `order-events`, ,
+`UserRegisteredConsumer` consumes `UserRegistered` on `user-events` (welcome email), and
+`FulfilmentEventConsumer` consumes `DispatchConfirmed`/`DispatchFailed` on `fulfilment-events`
+(shipped / dispatch-failed emails). Both are registered for [AsyncAPI](https://www.asyncapi.com/) documentation via
 `purekafka.docs` (see `AsyncApiChannels`) — this service has no OpenAPI/Swagger docs (no CRUD
 API at all), so this is its only generated API documentation.
 

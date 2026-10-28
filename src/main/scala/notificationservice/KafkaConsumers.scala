@@ -46,6 +46,13 @@ object KafkaConsumers {
           dlqProducerSettings
         )(logger)(meter)
       )
+      fulfilmentDeadLetter <- Stream.resource(
+        DeadLetter.resource[F, String, String](
+          config.dlqRetry,
+          config.dlqPublishResilience,
+          dlqProducerSettings
+        )(logger)(meter)
+      )
       merged <- StreamSupervisor
         .supervise[F, Unit](config.streamSupervisor)(logger)(meter)(
           Async[F].pure(
@@ -60,6 +67,16 @@ object KafkaConsumers {
             Async[F].pure(
               UserRegisteredConsumer
                 .run[F](config, emailClient, logger, userDeadLetter)
+            )
+          )
+        )
+        .merge(
+          StreamSupervisor.supervise[F, Unit](config.streamSupervisor)(
+            logger
+          )(meter)(
+            Async[F].pure(
+              FulfilmentEventConsumer
+                .run[F](config, emailClient, logger, fulfilmentDeadLetter)
             )
           )
         )

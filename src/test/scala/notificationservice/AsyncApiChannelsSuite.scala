@@ -6,7 +6,7 @@ import purekafka.docs.ChannelDirection
 class AsyncApiChannelsSuite extends FunSuite {
 
   test(
-    "AsyncApiChannels.channels registers both consumed event types as Subscribe"
+    "AsyncApiChannels.channels registers all consumed event types as Subscribe"
   ) {
     val channels = AsyncApiChannels.channels.map(c =>
       (c.topic, c.eventType, c.direction)
@@ -23,6 +23,16 @@ class AsyncApiChannelsSuite extends FunSuite {
         (
           "user-events",
           "UserRegistered",
+          ChannelDirection.Subscribe: ChannelDirection
+        ),
+        (
+          "fulfilment-events",
+          "DispatchConfirmed",
+          ChannelDirection.Subscribe: ChannelDirection
+        ),
+        (
+          "fulfilment-events",
+          "DispatchFailed",
           ChannelDirection.Subscribe: ChannelDirection
         )
       )

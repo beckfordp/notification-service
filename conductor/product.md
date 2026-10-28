@@ -116,3 +116,9 @@ integrating a real email service.
 - The cancel-order flow (US-9, separate epic) and stale-pending-order
   detection (US-10, separate epic) — notification-service only sends the
   email; it doesn't act on it
+
+Track `fulfilment-emails_20261028` (US-17.5/18.4, complete) added
+`FulfilmentEventConsumer` on `fulfilment-events`: DispatchConfirmed sends
+"Your order has shipped" (tracking number) and DispatchFailed sends "We
+couldn't ship your order" (reason). The stub recipient is the orderId —
+fulfilment events carry no email/contact yet.

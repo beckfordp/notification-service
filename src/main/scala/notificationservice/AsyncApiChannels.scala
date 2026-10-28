@@ -29,6 +29,16 @@ object AsyncApiChannels extends AsyncApiChannelsProvider {
       topic = UserRegisteredConsumer.topic,
       eventType = "UserRegistered",
       direction = ChannelDirection.Subscribe
+    ),
+    AsyncApiChannel[DispatchConfirmedEvent](
+      topic = FulfilmentEventConsumer.topic,
+      eventType = "DispatchConfirmed",
+      direction = ChannelDirection.Subscribe
+    ),
+    AsyncApiChannel[DispatchFailedEvent](
+      topic = FulfilmentEventConsumer.topic,
+      eventType = "DispatchFailed",
+      direction = ChannelDirection.Subscribe
     )
   )
 }
