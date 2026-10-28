@@ -8,9 +8,9 @@ class AsyncApiChannelsSuite extends FunSuite {
   test(
     "AsyncApiChannels.channels registers all consumed event types as Subscribe"
   ) {
-    val channels = AsyncApiChannels.channels.map(c =>
-      (c.topic, c.eventType, c.direction)
-    ).toSet
+    val channels = AsyncApiChannels.channels
+      .map(c => (c.topic, c.eventType, c.direction))
+      .toSet
 
     assertEquals(
       channels,
