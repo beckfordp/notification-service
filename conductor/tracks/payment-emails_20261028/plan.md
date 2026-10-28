@@ -2,10 +2,10 @@
 
 ## Phase 1: Event model + consumer
 
-- [ ] Task: Failing tests — `PaymentCapturedEvent`/`PaymentFailedEvent` decode; email mapping (subjects/bodies/recipient orderId, incl. `$` amount formatting); malformed payload fails decode; AsyncAPI registers both channels (Red)
-- [ ] Task: Implement the two event models + `PaymentEventConsumer` (null-safe, filtered, DLQ-guarded) and merge it independently supervised in `KafkaConsumers` (Green)
-- [ ] Task: Refactor, `sbt scalafmtCheck test` green
-- [ ] Task: Conductor - User Manual Verification 'Event model + consumer' (Protocol in workflow.md)
+- [x] Task: Failing tests — `PaymentCapturedEvent`/`PaymentFailedEvent` decode; email mapping (subjects/bodies/recipient orderId, incl. `$` amount formatting); malformed payload fails decode; AsyncAPI registers both channels (Red) `11d9d7e`
+- [x] Task: Implement the two event models + `PaymentEventConsumer` (null-safe, filtered, DLQ-guarded) and merge it independently supervised in `KafkaConsumers` (Green) `11d9d7e`
+- [x] Task: Refactor, `sbt scalafmtCheck test` green `11d9d7e`
+- [x] Task: Conductor - User Manual Verification 'Event model + consumer' (Protocol in workflow.md) `11d9d7e`
 
 ## Phase 2: AsyncAPI, registry, docs
 
