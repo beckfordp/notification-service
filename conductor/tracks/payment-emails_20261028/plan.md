@@ -15,8 +15,8 @@
 
 ## Phase 3: Live proof
 
-- [ ] Task: Rebuild/redeploy notification-service; `scripts/verify-payment-emails.sh`: synthetic both events produce the matching stub logs, and a real dispatched order produces the receipt email; cleanup
-- [ ] Task: Conductor - User Manual Verification 'Live proof' (Protocol in workflow.md)
+- [x] Task: Rebuild/redeploy notification-service; `scripts/verify-payment-emails.sh`: synthetic both events produce the matching stub logs, and a real dispatched order produces the receipt email; cleanup `c1e7909`
+- [x] Task: Conductor - User Manual Verification 'Live proof' (Protocol in workflow.md) `c1e7909`
 
 ## Risks / notes
 
