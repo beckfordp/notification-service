@@ -34,6 +34,16 @@ class AsyncApiChannelsSuite extends FunSuite {
           "fulfilment-events",
           "DispatchFailed",
           ChannelDirection.Subscribe: ChannelDirection
+        ),
+        (
+          "payment-events",
+          "PaymentCaptured",
+          ChannelDirection.Subscribe: ChannelDirection
+        ),
+        (
+          "payment-events",
+          "PaymentFailed",
+          ChannelDirection.Subscribe: ChannelDirection
         )
       )
     )

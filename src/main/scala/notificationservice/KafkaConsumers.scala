@@ -9,14 +9,14 @@ import org.typelevel.log4cats.StructuredLogger
 import org.typelevel.otel4s.metrics.Meter
 import purekafka.consumer.{DeadLetter, StreamSupervisor}
 
-/** Wires `OrderStatusChangedConsumer` with `purekafka`'s `StreamSupervisor`
+/** Wires every consumer with `purekafka`'s `StreamSupervisor`
   * (restart-with-backoff) and `DeadLetter` (bounded-retry-then-DLQ) -
-  * TD-2.3/TD-2.4, ADR 0010. Single-consumer version of order-service's own
-  * `KafkaConsumers.scala` (which wraps two consumers individually, then
-  * merges). Extracted out of `Main.scala`'s own `val run` so this wiring is
-  * directly testable, not just exercised incidentally by running the whole
-  * service. `config.streamSupervisor`/`config.dlqRetry`/
-  * `config.dlqPublishResilience` are all `application.conf`-driven (see
+  * TD-2.3/TD-2.4, ADR 0010. Each consumer is wrapped individually, then the
+  * streams are merged, so a crash/backoff in one doesn't restart the others.
+  * Extracted out of `Main.scala`'s own `val run` so this wiring is directly
+  * testable, not just exercised incidentally by running the whole service.
+  * `config.streamSupervisor`/`config.dlqRetry`/ `config.dlqPublishResilience`
+  * are all `application.conf`-driven (see
   * `NotificationServiceConfig.KafkaConfig`) rather than hardcoded here.
   */
 object KafkaConsumers {
@@ -53,6 +53,13 @@ object KafkaConsumers {
           dlqProducerSettings
         )(logger)(meter)
       )
+      paymentDeadLetter <- Stream.resource(
+        DeadLetter.resource[F, String, String](
+          config.dlqRetry,
+          config.dlqPublishResilience,
+          dlqProducerSettings
+        )(logger)(meter)
+      )
       merged <- StreamSupervisor
         .supervise[F, Unit](config.streamSupervisor)(logger)(meter)(
           Async[F].pure(
@@ -77,6 +84,16 @@ object KafkaConsumers {
             Async[F].pure(
               FulfilmentEventConsumer
                 .run[F](config, emailClient, logger, fulfilmentDeadLetter)
+            )
+          )
+        )
+        .merge(
+          StreamSupervisor.supervise[F, Unit](config.streamSupervisor)(
+            logger
+          )(meter)(
+            Async[F].pure(
+              PaymentEventConsumer
+                .run[F](config, emailClient, logger, paymentDeadLetter)
             )
           )
         )
