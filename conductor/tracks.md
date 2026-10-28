@@ -4,6 +4,9 @@ This file tracks all major tracks for the project.
 
 ---
 
+- [~] **Track: US-17.5/18.4 — fulfilment emails**
+  *Link: [./tracks/fulfilment-emails_20261028/](./tracks/fulfilment-emails_20261028/)*
+
 ## Backlog
 
 Title-only placeholders for future tracks — not yet detailed (no spec/plan, no linked

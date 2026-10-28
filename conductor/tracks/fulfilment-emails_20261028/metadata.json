@@ -1,0 +1,8 @@
+{
+  "track_id": "fulfilment-emails_20261028",
+  "type": "feature",
+  "status": "new",
+  "created_at": "2026-10-28T19:00:00Z",
+  "updated_at": "2026-10-28T19:00:00Z",
+  "description": "US-17.5 + US-18.4 — consume fulfilment-events DispatchConfirmed/DispatchFailed and send the shipped / dispatch-failed emails"
+}
