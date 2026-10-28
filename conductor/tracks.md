@@ -2,6 +2,9 @@
 
 This file tracks all major tracks for the project.
 
+- [~] **Track: US-16.4 — welcome email on UserRegistered**
+  *Link: [./tracks/welcome-email_20261028/](./tracks/welcome-email_20261028/)*
+
 ---
 
 ## Backlog
