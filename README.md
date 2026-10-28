@@ -10,9 +10,13 @@ Packages dependency.
 This service's generated Postgres/CRUD scaffold has been stripped down (see
 `conductor/tracks/strip-crud_20261002/`) to match its intended role per
 [`gluon/docs/user-stories.md`](../../docs/user-stories.md) US-7: a **Kafka consumer
-only, no database**. Right now it serves just health checks; the real consumer —
-subscribing to `order.status-changed` and sending the matching email per status — is
-**US-7.1**, a separate, not-yet-built track (`gluon/backlogs/notification-service.md`).
+only, no database**. It runs four supervised, DLQ-guarded consumers:
+`OrderStatusChanged` on `order-events` (US-7.1, matching status email),
+`UserRegistered` on `user-events` (US-16.4, welcome email),
+`DispatchConfirmed`/`DispatchFailed` on `fulfilment-events` (US-17.5/18.4,
+shipped / dispatch-failed emails) and `PaymentCaptured`/`PaymentFailed` on
+`payment-events` (US-19.4, receipt / payment-problem emails). Email sending is
+stubbed (`EmailClient.logging`); there is no HTTP domain API.
 
 ## Prerequisites
 
@@ -39,15 +43,16 @@ curl http://localhost:8080/health
 curl http://localhost:8080/health/ready
 ```
 
-`docker-compose.yml` currently declares no services — a Kafka broker will be added
-there once US-7.1 builds the real consumer.
+`docker-compose.yml` declares a single-node KRaft Kafka broker for local runs.
 
 ## View Kafka AsyncAPI docs
 
-`OrderStatusChangedConsumer` consumes `OrderStatusChanged` on `order-events`, ,
-`UserRegisteredConsumer` consumes `UserRegistered` on `user-events` (welcome email), and
-`FulfilmentEventConsumer` consumes `DispatchConfirmed`/`DispatchFailed` on `fulfilment-events`
-(shipped / dispatch-failed emails). Both are registered for [AsyncAPI](https://www.asyncapi.com/) documentation via
+`OrderStatusChangedConsumer` consumes `OrderStatusChanged` on `order-events`,
+`UserRegisteredConsumer` consumes `UserRegistered` on `user-events` (welcome email),
+`FulfilmentEventConsumer` consumes `DispatchConfirmed`/`DispatchFailed` on
+`fulfilment-events` (shipped / dispatch-failed emails), and `PaymentEventConsumer`
+consumes `PaymentCaptured`/`PaymentFailed` on `payment-events` (receipt /
+payment-problem emails). All are registered for [AsyncAPI](https://www.asyncapi.com/) documentation via
 `purekafka.docs` (see `AsyncApiChannels`) — this service has no OpenAPI/Swagger docs (no CRUD
 API at all), so this is its only generated API documentation.
 
@@ -76,8 +81,10 @@ avoid) — before adding new code.
 sbt scalafmtCheck test
 ```
 
-Unit tests only for now (no Postgres/Testcontainers needed) — a Testcontainers Kafka
-suite will be added alongside US-7.1's consumer.
+Unit tests cover every event model and email mapping. `KafkaConsumersSuite` is a
+Testcontainers Kafka integration test proving DLQ routing. The older
+`OrderStatusChangedConsumerSuite` remains `.ignore`'d pending its own fix (see
+`conductor/tracks.md`'s backlog).
 
 ## Calling other services with resilience
 

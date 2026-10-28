@@ -82,13 +82,17 @@
   service). `OrderStatusChangedConsumer` subscribes to `order-events`
   with null-safe `Deserializer.option` for both key and value from the
   start. Group id `notification-service-order-events` (corrected from a
-  stale note here naming a different, never-actual id).
+  stale note here naming a different, never-actual id). The same pattern
+  covers `UserRegisteredConsumer` (`notification-service-user-events`),
+  `FulfilmentEventConsumer` (`notification-service-fulfilment-events`) and
+  `PaymentEventConsumer` (`notification-service-payment-events`).
 - purekafka (`io.github.beckfordp`) — `consumer.StreamSupervisor` wraps
   each consumer's stream (restart-with-backoff) and `consumer.DeadLetter`
   wraps its per-message processing (bounded retry, then routes to
-  `order-events-dlq` / `user-events-dlq` on exhaustion) — TD-2.3/TD-2.4,
-  ADR 0010. `KafkaConsumers.supervised` merges the two supervised streams
-  so a crash in one never restarts the other. Replaces the old hand-rolled `readyRef`/
+  `order-events-dlq` / `user-events-dlq` / `fulfilment-events-dlq` /
+  `payment-events-dlq` on exhaustion) — TD-2.3/TD-2.4, ADR 0010.
+  `KafkaConsumers.supervised` merges the four supervised streams so a crash
+  in one never restarts the others. Replaces the old hand-rolled `readyRef`/
   `onFinalizeCase` restart signal (found broken 2026-10-09 — stuck at
   503 forever after a dropped connection) entirely.
 - Readiness: `/health/ready` now always returns `200`, same as

@@ -9,9 +9,9 @@
 
 ## Phase 2: AsyncAPI, registry, docs
 
-- [ ] Task: Register Subscribe `PaymentCaptured`/`PaymentFailed` on `payment-events`; run `schemaRegistryCheck`
-- [ ] Task: Update `gluon/docs/system-design.md`, README/product/tech-stack
-- [ ] Task: Conductor - User Manual Verification 'AsyncAPI, registry, docs' (Protocol in workflow.md)
+- [x] Task: Register Subscribe `PaymentCaptured`/`PaymentFailed` on `payment-events`; run `schemaRegistryCheck` `4d31624`
+- [x] Task: Update `gluon/docs/system-design.md`, README/product/tech-stack `4d31624`
+- [x] Task: Conductor - User Manual Verification 'AsyncAPI, registry, docs' (Protocol in workflow.md) `4d31624`
 
 ## Phase 3: Live proof
 

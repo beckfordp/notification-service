@@ -12,9 +12,12 @@ slice.
 notification-service closes the walking skeleton: it consumes
 `OrderStatusChanged` envelopes on the `order-events` domain topic and sends
 the matching customer email for `reservation_failed` / `confirmed` /
-`payment_failed`. No HTTP write API, no customer-facing endpoints — Kafka
-consumer only, per `user-stories.md`'s US-7 framing ("New
-`notification-service`, Kafka consumer only, no database").
+`payment_failed`; it also handles `UserRegistered` (welcome),
+`DispatchConfirmed`/`DispatchFailed` (shipped / dispatch-failed) and
+`PaymentCaptured`/`PaymentFailed` (receipt / payment-problem). No HTTP write
+API, no customer-facing endpoints — Kafka consumer only, per
+`user-stories.md`'s US-7 framing ("New `notification-service`, Kafka consumer
+only, no database").
 
 Generated via `pure-service-generator` (giter8 template over `purerest`), no
 field-spec applied (`gluon/specs/notification.yaml` doesn't exist — none was
@@ -106,7 +109,9 @@ integrating a real email service.
   shared envelope — one topic per domain, ADR 0009, migrated 2026-10-11,
   kafka-envelope_20261011; previously the dedicated `order.status-changed`
   topic. Other event types on `order-events`, e.g. `OrderReserved`, are
-  silently skipped)
+  silently skipped), `user-events` (`UserRegistered`, US-16.4),
+  `fulfilment-events` (`DispatchConfirmed`/`DispatchFailed`, US-17.5/18.4),
+  and `payment-events` (`PaymentCaptured`/`PaymentFailed`, US-19.4)
 
 ## Out of scope for this service
 - Any HTTP write API / CRUD persistence (removed — see "Current state"
@@ -122,3 +127,9 @@ Track `fulfilment-emails_20261028` (US-17.5/18.4, complete) added
 "Your order has shipped" (tracking number) and DispatchFailed sends "We
 couldn't ship your order" (reason). The stub recipient is the orderId —
 fulfilment events carry no email/contact yet.
+
+Track `payment-emails_20261028` (US-19.4, complete) added
+`PaymentEventConsumer` on `payment-events`: PaymentCaptured sends "Your
+payment was received" (order + `$` amount) and PaymentFailed sends "We
+couldn't take your payment" (order + amount + reason). Same stub recipient
+(orderId) — payment events also carry no email/contact.
