@@ -2,21 +2,21 @@
 
 ## Phase 1: Event model + consumer
 
-- [ ] Task: Failing tests — `DispatchConfirmedEvent`/`DispatchFailedEvent` decode; email mapping (subjects/bodies/recipient orderId); malformed payload fails decode; AsyncAPI registers both channels (Red)
-- [ ] Task: Implement the two event models + `FulfilmentEventConsumer` (null-safe, filtered, DLQ-guarded) and merge it independently supervised in `KafkaConsumers` (Green)
-- [ ] Task: Refactor, `sbt scalafmtCheck test` green
-- [ ] Task: Conductor - User Manual Verification 'Event model + consumer' (Protocol in workflow.md)
+- [x] Task: Failing tests — `DispatchConfirmedEvent`/`DispatchFailedEvent` decode; email mapping (subjects/bodies/recipient orderId); malformed payload fails decode; AsyncAPI registers both channels (Red) `642946d`
+- [x] Task: Implement the two event models + `FulfilmentEventConsumer` (null-safe, filtered, DLQ-guarded) and merge it independently supervised in `KafkaConsumers` (Green) `642946d`
+- [x] Task: Refactor, `sbt scalafmtCheck test` green `642946d`
+- [x] Task: Conductor - User Manual Verification 'Event model + consumer' (Protocol in workflow.md) `642946d`
 
 ## Phase 2: AsyncAPI, registry, docs
 
-- [ ] Task: Register Subscribe `DispatchConfirmed`/`DispatchFailed` on `fulfilment-events`; run `schemaRegistryCheck`
-- [ ] Task: Update `gluon/docs/system-design.md`, README/product/tech-stack
-- [ ] Task: Conductor - User Manual Verification 'AsyncAPI, registry, docs' (Protocol in workflow.md)
+- [x] Task: Register Subscribe `DispatchConfirmed`/`DispatchFailed` on `fulfilment-events`; run `schemaRegistryCheck` `642946d`
+- [x] Task: Update `gluon/docs/system-design.md`, README/product/tech-stack `642946d`
+- [x] Task: Conductor - User Manual Verification 'AsyncAPI, registry, docs' (Protocol in workflow.md) `642946d`
 
 ## Phase 3: Live proof
 
-- [ ] Task: Rebuild/redeploy notification-service; `scripts/verify-fulfilment-emails.sh`: synthetic both events produce the matching stub logs (and a real dispatched order too); cleanup
-- [ ] Task: Conductor - User Manual Verification 'Live proof' (Protocol in workflow.md)
+- [x] Task: Rebuild/redeploy notification-service; `scripts/verify-fulfilment-emails.sh`: synthetic both events produce the matching stub logs (and a real dispatched order too); cleanup `642946d`
+- [x] Task: Conductor - User Manual Verification 'Live proof' (Protocol in workflow.md) `642946d`
 
 ## Risks / notes
 
