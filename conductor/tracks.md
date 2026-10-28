@@ -6,7 +6,7 @@ This file tracks all major tracks for the project.
 
 ## Tracks
 
-- [ ] **Track: US-19.4 — receipt / capture-failure emails**
+- [x] **Track: US-19.4 — receipt / capture-failure emails**
   *Link: [./tracks/payment-emails_20261028/](./tracks/payment-emails_20261028/)*
 
 ---
