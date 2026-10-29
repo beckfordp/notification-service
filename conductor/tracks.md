@@ -2,7 +2,7 @@
 
 This file tracks all major tracks for the project.
 
-- [ ] **Track: TD-15.2 — Cross-repo consistency hardening (notification-service)**
+- [x] **Track: TD-15.2 — Cross-repo consistency hardening (notification-service)**
   *Link: [./tracks/td15-notification-hardening_20261029/](./tracks/td15-notification-hardening_20261029/)*
 
 ---
