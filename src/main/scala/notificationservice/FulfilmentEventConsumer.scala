@@ -75,7 +75,10 @@ object FulfilmentEventConsumer {
           case Some(raw) =>
             decode[EventEnvelope](raw) match {
               case Left(error) =>
-                logger.error(Map("raw" -> raw), error)(
+                logger.error(
+                  Map("topic" -> topic, "bytes" -> raw.length.toString),
+                  error
+                )(
                   "Failed to decode fulfilment-events envelope"
                 )
               case Right(envelope) =>
@@ -83,7 +86,10 @@ object FulfilmentEventConsumer {
                   case "DispatchConfirmed" =>
                     envelope.payload.as[DispatchConfirmedEvent] match {
                       case Left(error) =>
-                        logger.error(Map("raw" -> raw), error)(
+                        logger.error(
+                          Map("topic" -> topic, "bytes" -> raw.length.toString),
+                          error
+                        )(
                           "Failed to decode DispatchConfirmed payload"
                         )
                       case Right(event) =>
@@ -94,13 +100,19 @@ object FulfilmentEventConsumer {
                   case "DispatchFailed" =>
                     envelope.payload.as[DispatchFailedEvent] match {
                       case Left(error) =>
-                        logger.error(Map("raw" -> raw), error)(
+                        logger.error(
+                          Map("topic" -> topic, "bytes" -> raw.length.toString),
+                          error
+                        )(
                           "Failed to decode DispatchFailed payload"
                         )
                       case Right(event) =>
                         deadLetter.guard(topic, key, raw)(handleFailed(event))
                     }
-                  case _ => Async[F].unit
+                  case other =>
+                    logger.info(
+                      Map("topic" -> topic, "event_type" -> other)
+                    )("Ignoring unrelated fulfilment-events event type")
                 }
             }
         }

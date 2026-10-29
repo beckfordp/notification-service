@@ -82,7 +82,10 @@ object PaymentEventConsumer {
           case Some(raw) =>
             decode[EventEnvelope](raw) match {
               case Left(error) =>
-                logger.error(Map("raw" -> raw), error)(
+                logger.error(
+                  Map("topic" -> topic, "bytes" -> raw.length.toString),
+                  error
+                )(
                   "Failed to decode payment-events envelope"
                 )
               case Right(envelope) =>
@@ -90,7 +93,10 @@ object PaymentEventConsumer {
                   case "PaymentCaptured" =>
                     envelope.payload.as[PaymentCapturedEvent] match {
                       case Left(error) =>
-                        logger.error(Map("raw" -> raw), error)(
+                        logger.error(
+                          Map("topic" -> topic, "bytes" -> raw.length.toString),
+                          error
+                        )(
                           "Failed to decode PaymentCaptured payload"
                         )
                       case Right(event) =>
@@ -101,13 +107,19 @@ object PaymentEventConsumer {
                   case "PaymentFailed" =>
                     envelope.payload.as[PaymentFailedEvent] match {
                       case Left(error) =>
-                        logger.error(Map("raw" -> raw), error)(
+                        logger.error(
+                          Map("topic" -> topic, "bytes" -> raw.length.toString),
+                          error
+                        )(
                           "Failed to decode PaymentFailed payload"
                         )
                       case Right(event) =>
                         deadLetter.guard(topic, key, raw)(handleFailed(event))
                     }
-                  case _ => Async[F].unit
+                  case other =>
+                    logger.info(
+                      Map("topic" -> topic, "event_type" -> other)
+                    )("Ignoring unrelated payment-events event type")
                 }
             }
         }

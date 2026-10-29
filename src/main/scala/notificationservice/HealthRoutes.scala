@@ -1,5 +1,6 @@
 package notificationservice
 
+import cats.Applicative
 import cats.effect.Async
 import org.http4s.HttpRoutes
 import sttp.model.StatusCode
@@ -23,11 +24,11 @@ object HealthRoutes {
   private val readyEndpoint: PublicEndpoint[Unit, Unit, Unit, Any] =
     endpoint.get.in("health" / "ready").out(statusCode(StatusCode.Ok))
 
-  def healthServerEndpoint[F[_]: Async]: ServerEndpoint[Any, F] =
-    healthEndpoint.serverLogicSuccess[F](_ => Async[F].unit)
+  def healthServerEndpoint[F[_]: Applicative]: ServerEndpoint[Any, F] =
+    healthEndpoint.serverLogicSuccess[F](_ => Applicative[F].unit)
 
-  def readyServerEndpoint[F[_]: Async]: ServerEndpoint[Any, F] =
-    readyEndpoint.serverLogicSuccess[F](_ => Async[F].unit)
+  def readyServerEndpoint[F[_]: Applicative]: ServerEndpoint[Any, F] =
+    readyEndpoint.serverLogicSuccess[F](_ => Applicative[F].unit)
 
   def routes[F[_]: Async]: HttpRoutes[F] =
     Http4sServerInterpreter[F]().toRoutes(

@@ -5,6 +5,7 @@ val http4sVersion = "0.23.37"
 val circeVersion = "0.14.16"
 val munitVersion = "1.3.6"
 val munitCatsEffectVersion = "2.2.1"
+val munitScalacheckVersion = "1.3.1"
 val log4catsVersion = "2.8.0"
 val tapirVersion = "1.11.25"
 val fs2KafkaVersion = "3.6.0"
@@ -113,6 +114,9 @@ lazy val root = project
       "org.scalameta" %% "munit" % munitVersion % Test,
       // munit-cats-effect: lets test bodies return IO[Unit] and run under munit directly.
       "org.typelevel" %% "munit-cats-effect" % munitCatsEffectVersion % Test,
+      // munit-scalacheck: property-based tests for pure notification rules
+      // (scala-fp.md law 8), e.g. every order event maps to a non-empty email.
+      "org.scalameta" %% "munit-scalacheck" % munitScalacheckVersion % Test,
       // testcontainers-scala: spins up a real, ephemeral Kafka broker for the
       // consumer's own integration tests.
       "com.dimafeng" %% "testcontainers-scala-kafka" % testcontainersScalaVersion % Test,

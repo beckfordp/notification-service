@@ -67,7 +67,10 @@ object UserRegisteredConsumer {
           case Some(raw) =>
             decode[EventEnvelope](raw) match {
               case Left(error) =>
-                logger.error(Map("raw" -> raw), error)(
+                logger.error(
+                  Map("topic" -> topic, "bytes" -> raw.length.toString),
+                  error
+                )(
                   "Failed to decode user-events envelope"
                 )
               case Right(envelope) if envelope.eventType != eventType =>
@@ -75,7 +78,10 @@ object UserRegisteredConsumer {
               case Right(envelope) =>
                 envelope.payload.as[UserRegisteredEvent] match {
                   case Left(error) =>
-                    logger.error(Map("raw" -> raw), error)(
+                    logger.error(
+                      Map("topic" -> topic, "bytes" -> raw.length.toString),
+                      error
+                    )(
                       "Failed to decode UserRegistered payload"
                     )
                   case Right(event) =>

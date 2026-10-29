@@ -26,7 +26,8 @@ object AppRoutes {
 
   def all[F[_]: Async](
       telemetry: Telemetry[F],
-      channels: List[AsyncApiChannel[?]]
+      channels: List[AsyncApiChannel[?]],
+      staticAsyncApiDocsDir: String
   ): HttpRoutes[F] = {
     val healthRoutes = HealthRoutes.routes[F]
     val asyncApiRoutes =
@@ -36,8 +37,6 @@ object AppRoutes {
     // split as the other services' own Swagger /docs vs /docs/docs.yaml.
     // notification-service runs as a plain `sbt run` JVM process (no docker
     // bind mount), so this reads straight from the local filesystem.
-    val staticAsyncApiDocsDir =
-      sys.env.getOrElse("ASYNCAPI_HTML_DIR", "target/asyncapi-docs")
     val staticAsyncApiRoutes = fileService[F](
       FileService.Config(
         systemPath = staticAsyncApiDocsDir,

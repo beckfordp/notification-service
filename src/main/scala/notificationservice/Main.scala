@@ -39,7 +39,11 @@ object Main extends IOApp.Simple {
       telemetry.logger,
       telemetry.meter
     )
-    routes = AppRoutes.all[IO](telemetry, AsyncApiChannels.channels)
+    routes = AppRoutes.all[IO](
+      telemetry,
+      AsyncApiChannels.channels,
+      config.asyncApiHtmlDir
+    )
     _ <- EmberServerBuilder
       .default[IO]
       .withHost(host"0.0.0.0")

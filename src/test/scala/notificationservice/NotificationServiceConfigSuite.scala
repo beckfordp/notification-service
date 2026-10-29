@@ -11,6 +11,7 @@ class NotificationServiceConfigSuite extends CatsEffectSuite {
       |port = 8080
       |metrics-port = 9090
       |service-name = "notification-service"
+      |async-api-html-dir = "target/asyncapi-docs"
       |kafka {
       |  bootstrap-servers = "localhost:9092"
       |  dlq-retry {
@@ -44,6 +45,7 @@ class NotificationServiceConfigSuite extends CatsEffectSuite {
           port = 8080,
           metricsPort = 9090,
           serviceName = "notification-service",
+          asyncApiHtmlDir = "target/asyncapi-docs",
           kafka = KafkaConfig(bootstrapServers = "localhost:9092")
         )
       )
@@ -71,6 +73,7 @@ class NotificationServiceConfigSuite extends CatsEffectSuite {
       assertEquals(config.port, 8080)
       assertEquals(config.metricsPort, 9090)
       assertEquals(config.serviceName, "notification-service")
+      assertEquals(config.asyncApiHtmlDir, "target/asyncapi-docs")
       assertEquals(
         config.kafka,
         KafkaConfig(bootstrapServers = "localhost:9092")

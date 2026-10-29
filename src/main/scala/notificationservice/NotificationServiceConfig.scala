@@ -50,6 +50,7 @@ final case class NotificationServiceConfig(
     port: Int,
     metricsPort: Int,
     serviceName: String,
+    asyncApiHtmlDir: String,
     kafka: KafkaConfig
 ) derives ConfigReader
 

@@ -12,11 +12,11 @@ import purekafka.consumer.DeadLetter
   * (`OrderConfirmed`/`OrderPaymentFailed`/`OrderCancelled`, TD-15) and sends
   * the matching email. Replaces the single `OrderStatusChanged` consumer.
   *
-  * A decode failure (null value, envelope, or payload) is logged and the
-  * offset still committed - the existing accepted gap, same as the other
-  * consumers. Only processing failures go through `DeadLetter.guard`
-  * (TD-2.4, ADR 0010). Unknown event types on the topic are logged, not
-  * silently swallowed. Raw payloads are never logged.
+  * A decode failure (null value, envelope, or payload) is logged and the offset
+  * still committed - the existing accepted gap, same as the other consumers.
+  * Only processing failures go through `DeadLetter.guard` (TD-2.4, ADR 0010).
+  * Unknown event types on the topic are logged, not silently swallowed. Raw
+  * payloads are never logged.
   */
 object OrderEventsConsumer {
 

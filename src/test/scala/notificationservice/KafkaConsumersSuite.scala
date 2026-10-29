@@ -6,7 +6,8 @@ import com.dimafeng.testcontainers.munit.TestContainerForAll
 import fs2.kafka._
 import io.circe.syntax._
 import munit.CatsEffectSuite
-import org.typelevel.log4cats.noop.NoOpLogger
+import org.typelevel.log4cats.testing.StructuredTestingLogger
+import org.typelevel.log4cats.testing.StructuredTestingLogger.INFO
 import purerest.metrics.Metrics
 
 import java.time.Instant
@@ -29,8 +30,8 @@ import scala.jdk.CollectionConverters._
   * `KafkaConsumersSuite`. This test class gets its own fresh Testcontainers
   * Kafka instance (one per class, per `TestContainerForAll`) and has exactly
   * one test, so there's no risk of the cross-test message leakage found in the
-  * *separate*, still-`.ignore`'d `OrderEventsConsumerSuite` (which
-  * shares one container across 6 tests) — no group-id override needed here.
+  * *separate*, still-`.ignore`'d `OrderEventsConsumerSuite` (which shares one
+  * container across 6 tests) — no group-id override needed here.
   */
 class KafkaConsumersSuite extends CatsEffectSuite with TestContainerForAll {
 
@@ -129,6 +130,7 @@ class KafkaConsumersSuite extends CatsEffectSuite with TestContainerForAll {
           for {
             emailsRef <- Ref.of[IO, List[SentEmail]](Nil)
             emailClient = alwaysFailOn("cust-poison", emailsRef)
+            testLogger = StructuredTestingLogger.impl[IO]()
             poisonEvent = OrderConfirmedEvent(
               orderId = "order-poison",
               customerId = "cust-poison",
@@ -164,7 +166,7 @@ class KafkaConsumersSuite extends CatsEffectSuite with TestContainerForAll {
                 .supervised[IO](
                   config,
                   emailClient,
-                  NoOpLogger[IO],
+                  testLogger,
                   testMeter.meter
                 )
                 .compile
@@ -186,6 +188,7 @@ class KafkaConsumersSuite extends CatsEffectSuite with TestContainerForAll {
               .flatMap(_.getLongSumData.getPoints.asScala)
               .map(_.getValue)
               .sum
+            logged <- testLogger.logged
           } yield {
             assertEquals(healthyFinal.to, "cust-healthy")
             assert(
@@ -195,6 +198,15 @@ class KafkaConsumersSuite extends CatsEffectSuite with TestContainerForAll {
             assert(
               dlqPublished >= 1L,
               s"expected at least 1 purekafka.dlq.published, got $dlqPublished"
+            )
+            val infos = logged.collect { case m: INFO => m }
+            assert(
+              infos.exists(_.ctx.get("event_type").contains("OrderConfirmed")),
+              s"expected an event_type-tagged info line, got: $infos"
+            )
+            assert(
+              logged.forall(m => !m.ctx.contains("raw")),
+              s"raw payloads must never be logged, got: $logged"
             )
           }
       }
