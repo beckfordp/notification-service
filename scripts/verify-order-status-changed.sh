@@ -1,17 +1,15 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Verifies US-7.1 (track consume-order-status_20261003) end-to-end: brings up
-# Kafka + the real service, publishes a synthetic OrderStatusChanged envelope
-# per status directly onto the order-events topic (no live order-service
-# needed, per the stub/fan-out pattern), and confirms the real consumer logs
-# the matching email send for each status while /health/ready stays 200
-# throughout - not just that the unit/integration test suite passes (those
-# Kafka tests stay .ignore'd in this dev environment - see
-# OrderStatusChangedConsumerSuite).
+# Verifies the order lifecycle consumer end-to-end: brings up Kafka + the real
+# service, publishes one synthetic per-outcome order event directly onto the
+# order-events topic (no live order-service needed, per the stub/fan-out
+# pattern), and confirms the real consumer logs the matching email send for
+# each event while /health/ready stays 200 throughout - not just that the
+# unit/integration test suite passes (those Kafka tests stay .ignore'd in this
+# dev environment - see OrderEventsConsumerSuite).
 #
-# Migrated to the order-events domain topic + envelope shape by
-# kafka-envelope_20261011 (ADR 0009).
+# Migrated from OrderStatusChanged to the per-outcome events by TD-15.
 #
 # Usage: ./scripts/verify-order-status-changed.sh
 
@@ -111,25 +109,29 @@ wait_ready
 echo "   OK: notification-service ready on :8080"
 
 echo
-echo "4. Publish one synthetic OrderStatusChanged envelope per status and confirm the matching email..."
-for status in reservation_failed confirmed payment_failed; do
-  order_id="verify-${status}-$(date +%s)"
-  payload="{\"orderId\":\"${order_id}\",\"customerId\":\"cust-verify\",\"status\":\"${status}\",\"timestamp\":\"2026-01-01T00:00:00Z\"}"
-  produce_one order-events "$(envelope OrderStatusChanged "$order_id" "$payload")"
-  if wait_for_log_line "order_id=${order_id}, status=${status}"; then
-    check "email sent for status '${status}'" "0" "0"
+echo "4. Publish one synthetic per-outcome order event and confirm the matching email..."
+for event_type in OrderConfirmed OrderPaymentFailed OrderCancelled; do
+  order_id="verify-${event_type}-$(date +%s)"
+  if [ "$event_type" = "OrderPaymentFailed" ]; then
+    payload="{\"orderId\":\"${order_id}\",\"customerId\":\"cust-verify\",\"reason\":\"capture_failed\",\"timestamp\":\"2026-01-01T00:00:00Z\"}"
   else
-    check "email sent for status '${status}'" "0" "1"
+    payload="{\"orderId\":\"${order_id}\",\"customerId\":\"cust-verify\",\"timestamp\":\"2026-01-01T00:00:00Z\"}"
+  fi
+  produce_one order-events "$(envelope "$event_type" "$order_id" "$payload")"
+  if wait_for_log_line "Sent ${event_type} email (order_id=${order_id})"; then
+    check "email sent for event '${event_type}'" "0" "0"
+  else
+    check "email sent for event '${event_type}'" "0" "1"
   fi
 
   ready="$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/health/ready)"
-  check "/health/ready still 200 after '${status}'" "200" "$ready"
+  check "/health/ready still 200 after '${event_type}'" "200" "$ready"
 done
 
 echo
 echo "5. Publishing an OrderReserved envelope on order-events (same topic,"
-echo "   different eventType) and confirming it's silently skipped, not"
-echo "   logged as malformed, and doesn't disrupt /health/ready..."
+echo "   different eventType) and confirming it's logged as skipped, not"
+echo "   treated as malformed, and doesn't disrupt /health/ready..."
 reserved_order_id="verify-order-reserved-$(date +%s)"
 produce_one order-events "$(envelope OrderReserved "$reserved_order_id" "{\"orderId\":\"${reserved_order_id}\"}")"
 sleep 2
@@ -137,6 +139,11 @@ if grep -qF "Failed to decode" "$LOG_FILE"; then
   check "no malformed-decode error logged for OrderReserved" "0" "1"
 else
   check "no malformed-decode error logged for OrderReserved" "0" "0"
+fi
+if wait_for_log_line "Ignoring unrelated order-events event type"; then
+  check "OrderReserved logged as an ignored event type" "0" "0"
+else
+  check "OrderReserved logged as an ignored event type" "0" "1"
 fi
 ready="$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/health/ready)"
 check "/health/ready still 200 after OrderReserved" "200" "$ready"

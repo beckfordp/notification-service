@@ -13,7 +13,7 @@ set -euo pipefail
 # unconditionally (TD-2.3's readiness simplification). Adapted from
 # inventory-service's/order-service's own verify-kafka-asyncapi-docs.sh.
 #
-# No order-service produces a real OrderStatusChanged event here -
+# No order-service produces a real order lifecycle event here -
 # notification-service starts with no inbound traffic, same as
 # inventory-service's own verify script; this only checks the AsyncAPI docs
 # + health surface, not the actual email-sending flow.
@@ -49,9 +49,9 @@ echo "1. sbt asyncApiGenerate (no server needed - AsyncApiSpecWriter reads Async
 sbt asyncApiGenerate
 
 echo
-echo "2. Checking the generated raw spec for the registered event type..."
+echo "2. Checking the generated raw spec for all 8 registered event types..."
 SPEC_FILE="target/asyncapi-docs-spec/asyncapi.json"
-for needle in "order-events" "OrderStatusChanged"; do
+for needle in "order-events" "OrderConfirmed" "OrderPaymentFailed" "OrderCancelled" "UserRegistered" "DispatchConfirmed" "DispatchFailed" "PaymentCaptured" "PaymentFailed"; do
   if ! grep -q "$needle" "$SPEC_FILE"; then
     echo "FAIL: generated spec missing expected content: ${needle}" >&2
     FAILED=1
@@ -59,16 +59,24 @@ for needle in "order-events" "OrderStatusChanged"; do
     echo "   OK: generated spec contains \"${needle}\""
   fi
 done
+if grep -q "OrderStatusChanged" "$SPEC_FILE"; then
+  echo "FAIL: generated spec still contains retired content: OrderStatusChanged" >&2
+  FAILED=1
+else
+  echo "   OK: generated spec omits retired \"OrderStatusChanged\""
+fi
 
 echo
 echo "3. Checking the generated static HTML for the same content..."
 HTML_FILE="target/asyncapi-docs/index.html"
-if ! grep -q "OrderStatusChanged" "$HTML_FILE"; then
-  echo "FAIL: generated HTML missing expected content: OrderStatusChanged" >&2
-  FAILED=1
-else
-  echo "   OK: generated HTML contains \"OrderStatusChanged\""
-fi
+for needle in "OrderConfirmed" "OrderPaymentFailed" "OrderCancelled"; do
+  if ! grep -q "$needle" "$HTML_FILE"; then
+    echo "FAIL: generated HTML missing expected content: ${needle}" >&2
+    FAILED=1
+  else
+    echo "   OK: generated HTML contains \"${needle}\""
+  fi
+done
 
 echo
 echo "4. docker compose up -d (fresh volumes, kafka)..."
@@ -100,21 +108,33 @@ fi
 
 echo
 echo "7. Checking the live raw-spec route (/docs/asyncapi.json) for the same content..."
-if ! curl -s "${NOTIFICATION_SERVICE_URL}/docs/asyncapi.json" | grep -q "OrderStatusChanged"; then
-  echo "FAIL: live raw-spec route missing expected content: OrderStatusChanged" >&2
-  FAILED=1
-else
-  echo "   OK: live raw-spec route contains \"OrderStatusChanged\""
-fi
+for needle in "OrderConfirmed" "OrderPaymentFailed" "OrderCancelled"; do
+  if ! curl -s "${NOTIFICATION_SERVICE_URL}/docs/asyncapi.json" | grep -q "$needle"; then
+    echo "FAIL: live raw-spec route missing expected content: ${needle}" >&2
+    FAILED=1
+  else
+    echo "   OK: live raw-spec route contains \"${needle}\""
+  fi
+done
 
 echo
 echo "8. Checking the live static HTML route (/docs/asyncapi/) for the same content..."
-if ! curl -s "${NOTIFICATION_SERVICE_URL}/docs/asyncapi/index.html" | grep -q "OrderStatusChanged"; then
-  echo "FAIL: live static HTML route missing expected content: OrderStatusChanged" >&2
-  FAILED=1
-else
-  echo "   OK: live static HTML route contains \"OrderStatusChanged\""
-fi
+for needle in "OrderConfirmed" "OrderPaymentFailed" "OrderCancelled"; do
+  ok=0
+  for _ in $(seq 1 30); do
+    if curl -s "${NOTIFICATION_SERVICE_URL}/docs/asyncapi/index.html" | grep -q "$needle"; then
+      ok=1
+      break
+    fi
+    sleep 1
+  done
+  if [ "$ok" -ne 1 ]; then
+    echo "FAIL: live static HTML route missing expected content: ${needle}" >&2
+    FAILED=1
+  else
+    echo "   OK: live static HTML route contains \"${needle}\""
+  fi
+done
 
 echo
 if [ "$FAILED" -eq 0 ]; then

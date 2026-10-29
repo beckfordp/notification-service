@@ -6,8 +6,7 @@ set -euo pipefail
 # instance (gluon's infra/k8s/local-infra). Mirrors the prior three
 # services' own equivalent scripts - exercises the real production
 # AsyncApiChannels registration in AsyncApiChannels.scala, registering this
-# service's one real event schema (OrderStatusChanged) under the real
-# "notification-service" group.
+# service's three per-outcome order schemas under the shared "gluon" group.
 #
 # Proves: a run registers the channel and sets a BACKWARD compatibility
 # rule (first time only); a second identical run is a no-op (no error).
@@ -36,14 +35,16 @@ fi
 
 echo
 echo "2. Checking the registry directly for the registered artifact..."
-ARTIFACTS_URL="http://apicurio-registry.gluon-local.svc.cluster.local:8080/apis/registry/v3/groups/notification-service/artifacts"
+ARTIFACTS_URL="http://apicurio-registry.gluon-local.svc.cluster.local:8080/apis/registry/v3/groups/gluon/artifacts"
 RESPONSE="$(curl -s "$ARTIFACTS_URL")"
-if ! echo "$RESPONSE" | grep -q "order-events-OrderStatusChanged"; then
-  echo "FAIL: registry missing expected artifact: order-events-OrderStatusChanged" >&2
-  FAILED=1
-else
-  echo "   OK: registry contains artifact \"order-events-OrderStatusChanged\""
-fi
+for artifact in order-events-OrderConfirmed order-events-OrderPaymentFailed order-events-OrderCancelled; do
+  if ! echo "$RESPONSE" | grep -q "$artifact"; then
+    echo "FAIL: registry missing expected artifact: ${artifact}" >&2
+    FAILED=1
+  else
+    echo "   OK: registry contains artifact \"${artifact}\""
+  fi
+done
 
 echo
 echo "3. Second, identical run (should be a no-op, not an error)..."
