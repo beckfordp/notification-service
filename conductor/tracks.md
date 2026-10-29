@@ -23,4 +23,6 @@ through the spec/plan questions and promote it into a real track above.
   each test its own unique consumer group id (or topic), mirroring how
   other suites avoid this.
 
+- TD-15.2 — cross-repo consistency hardening: consume OrderConfirmed/OrderPaymentFailed/OrderCancelled, retire OrderStatusChanged, unknown-event logging, raw-log redaction, ScalaCheck, narrower constraints (see `gluon/TECHNICAL_DEBT.md` TD-15)
+
 ---
