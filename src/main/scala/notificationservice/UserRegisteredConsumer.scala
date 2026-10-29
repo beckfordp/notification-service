@@ -10,12 +10,11 @@ import purekafka.consumer.DeadLetter
 
 /** Consumes `UserRegistered` envelopes on `user-events` (US-16.4) and sends the
   * welcome email to the address in the event. Same conventions as
-  * `OrderEventsConsumer`: null-safe deserializers, malformed
-  * envelope/payload logged and dropped (offset still committed), unknown
-  * `eventType`s logged and skipped, and only processing (the email send) wrapped
-  * in `DeadLetter.guard` (bounded retry, then `user-events-dlq`). A redelivered
-  * event sends a second welcome email - accepted, same as the order-events
-  * consumer (no datastore).
+  * `OrderEventsConsumer`: null-safe deserializers, malformed envelope/payload
+  * logged and dropped (offset still committed), unknown `eventType`s logged and
+  * skipped, and only processing (the email send) wrapped in `DeadLetter.guard`
+  * (bounded retry, then `user-events-dlq`). A redelivered event sends a second
+  * welcome email - accepted, same as the order-events consumer (no datastore).
   */
 object UserRegisteredConsumer {
 
