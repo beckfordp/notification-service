@@ -1,0 +1,8 @@
+{
+  "track_id": "td15-notification-hardening_20261029",
+  "type": "chore",
+  "status": "new",
+  "created_at": "2026-10-29T00:00:00Z",
+  "updated_at": "2026-10-29T00:00:00Z",
+  "description": "TD-15.2 — notification-service: consume per-outcome order events, retire OrderStatusChanged, redact raw logs, log unknown event types, asyncApiHtmlDir config, ScalaCheck, narrower constraints"
+}
