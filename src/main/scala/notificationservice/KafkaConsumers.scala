@@ -63,7 +63,7 @@ object KafkaConsumers {
       merged <- StreamSupervisor
         .supervise[F, Unit](config.streamSupervisor)(logger)(meter)(
           Async[F].pure(
-            OrderStatusChangedConsumer
+            OrderEventsConsumer
               .run[F](config, emailClient, logger, orderDeadLetter)
           )
         )

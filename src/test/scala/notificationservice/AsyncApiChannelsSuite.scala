@@ -17,7 +17,17 @@ class AsyncApiChannelsSuite extends FunSuite {
       Set(
         (
           "order-events",
-          "OrderStatusChanged",
+          "OrderConfirmed",
+          ChannelDirection.Subscribe: ChannelDirection
+        ),
+        (
+          "order-events",
+          "OrderPaymentFailed",
+          ChannelDirection.Subscribe: ChannelDirection
+        ),
+        (
+          "order-events",
+          "OrderCancelled",
           ChannelDirection.Subscribe: ChannelDirection
         ),
         (

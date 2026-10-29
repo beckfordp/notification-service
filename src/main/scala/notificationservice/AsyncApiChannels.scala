@@ -7,8 +7,9 @@ import purekafka.docs.{
 }
 
 /** Registers notification-service's Kafka event contracts for AsyncAPI
-  * documentation (ADR 0010's AsyncAPI follow-up). It consumes
-  * `OrderStatusChanged` on `order-events` and `UserRegistered` on `user-events` -
+  * documentation (ADR 0010's AsyncAPI follow-up). It consumes the three
+  * per-outcome order events (`OrderConfirmed`/`OrderPaymentFailed`/
+  * `OrderCancelled`) on `order-events` and `UserRegistered` on `user-events` -
   * `Subscribe` only. No producer side at all - this service is a pure
   * Kafka-to-email relay, no outbox, no direct publish call.
   *
@@ -20,9 +21,19 @@ import purekafka.docs.{
 object AsyncApiChannels extends AsyncApiChannelsProvider {
 
   val channels: List[AsyncApiChannel[?]] = List(
-    AsyncApiChannel[OrderStatusChangedEvent](
-      topic = OrderStatusChangedConsumer.topic,
-      eventType = "OrderStatusChanged",
+    AsyncApiChannel[OrderConfirmedEvent](
+      topic = OrderEventsConsumer.topic,
+      eventType = "OrderConfirmed",
+      direction = ChannelDirection.Subscribe
+    ),
+    AsyncApiChannel[OrderPaymentFailedEvent](
+      topic = OrderEventsConsumer.topic,
+      eventType = "OrderPaymentFailed",
+      direction = ChannelDirection.Subscribe
+    ),
+    AsyncApiChannel[OrderCancelledEvent](
+      topic = OrderEventsConsumer.topic,
+      eventType = "OrderCancelled",
       direction = ChannelDirection.Subscribe
     ),
     AsyncApiChannel[UserRegisteredEvent](

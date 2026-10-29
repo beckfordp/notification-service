@@ -20,27 +20,18 @@ import java.time.Instant
 import java.util.UUID
 import scala.concurrent.duration._
 
-/** Ignored: the original Docker-API-version blocker (docker-java hardcoded to
-  * API 1.32, rejected by this machine's Docker ≥ 1.40) was fixed by this
-  * track's `testcontainersScalaVersion` 0.43.6 -> 0.44.1 bump - containers now
-  * actually start. But doing so exposed a *separate*, real bug: all 6 tests
-  * here share one Kafka container + a fixed consumer group id with `Earliest`
-  * offset reset, so a later test consumes an earlier test's leftover message (5
-  * of 6 fail on customer-identity assertions once un-ignored). Left `.ignore`'d -
-  * fixing that cross-test isolation is its own, separate backlog item (see
-  * `conductor/tracks.md`), out of scope for this track. `noOpDeadLetter` below
-  * exists only so this file keeps compiling against
-  * `OrderStatusChangedConsumer.run`'s new signature (TD-2.4) - not a fix.
+/** Ignored: same cross-test isolation issue as the retired
+  * `OrderStatusChangedConsumerSuite` - every test in this suite shares one
+  * Kafka container and a fixed consumer group id with `Earliest` reset, so a
+  * later test can consume an earlier test's leftover message. Fixing that is a
+  * separate backlog item; the suite is rewritten for the per-outcome events
+  * (TD-15) but stays `.ignore`'d. The pure email/decoding behaviour is covered
+  * by `OrderEventsSuite` and the property suite.
   */
-class OrderStatusChangedConsumerSuite
+class OrderEventsConsumerSuite
     extends CatsEffectSuite
     with TestContainerForAll {
 
-  /** A `DeadLetter` whose `guard` never actually triggers in these tests -
-    * every `handleEvent` call here succeeds on its first attempt, so this is
-    * only ever a transparent pass-through. `KafkaConsumersSuite` is where DLQ
-    * routing itself (the failure path) is actually exercised.
-    */
   private def noOpDeadLetter: IO[DeadLetter[IO, String, String]] = {
     import org.typelevel.otel4s.metrics.Meter.Implicits.noop
     DeadLetter.fromPublish[IO, String, String](
@@ -91,7 +82,7 @@ class OrderStatusChangedConsumerSuite
       .resource(producerSettings)
       .use(
         _.produceOne_(
-          ProducerRecord(OrderStatusChangedConsumer.topic, key, json)
+          ProducerRecord(OrderEventsConsumer.topic, key, json)
         ).flatten.void
       )
   }
@@ -110,11 +101,6 @@ class OrderStatusChangedConsumerSuite
       payload = payload
     ).asJson.noSpaces
 
-  /** Sends a record with a genuinely null value, bypassing fs2-kafka's typed
-    * `String` serializer (which itself throws on a null value) - exactly what a
-    * producer that fails mid-send, or a raw `kafka-console-producer.sh`
-    * invocation, can send.
-    */
   private def produceNullValue(config: KafkaConfig, key: String): IO[Unit] = {
     val producerSettings =
       ProducerSettings[IO, Array[Byte], Array[Byte]]
@@ -124,7 +110,7 @@ class OrderStatusChangedConsumerSuite
       .use(
         _.produceOne_(
           ProducerRecord(
-            OrderStatusChangedConsumer.topic,
+            OrderEventsConsumer.topic,
             key.getBytes("UTF-8"),
             null
           )
@@ -132,21 +118,11 @@ class OrderStatusChangedConsumerSuite
       )
   }
 
-  private def event(
-      orderId: String,
-      customerId: String,
-      status: OrderStatusChanged
-  ): OrderStatusChangedEvent =
-    OrderStatusChangedEvent(
-      orderId,
-      customerId,
-      status,
-      Instant.parse("2026-01-01T00:00:00Z")
-    )
-
   private def runAndAwaitOneEmail(
       kafka: KafkaContainer,
-      ev: OrderStatusChangedEvent
+      eventType: String,
+      orderId: String,
+      payload: Json
   ): IO[SentEmail] = {
     val config = configFor(kafka)
     for {
@@ -154,11 +130,11 @@ class OrderStatusChangedConsumerSuite
       deadLetter <- noOpDeadLetter
       _ <- produce(
         config,
-        ev.orderId,
-        envelopeJson("OrderStatusChanged", ev.orderId, ev.asJson)
+        orderId,
+        envelopeJson(eventType, orderId, payload)
       )
       raced <- IO.race(
-        OrderStatusChangedConsumer
+        OrderEventsConsumer
           .run[IO](
             config,
             fakeEmailClient(emailsRef),
@@ -181,36 +157,42 @@ class OrderStatusChangedConsumerSuite
     } yield emails.head
   }
 
-  test("a reservation_failed event sends the matching email".ignore) {
+  private val at = Instant.parse("2026-01-01T00:00:00Z")
+
+  test("an OrderConfirmed event sends the matching email".ignore) {
     withContainers { kafka =>
-      val ev = event("order-1", "cust-1", OrderStatusChanged.ReservationFailed)
-      runAndAwaitOneEmail(kafka, ev).map { email =>
-        assertEquals(email.to, "cust-1")
-        assert(email.subject.contains("could not be fulfilled"))
-        assert(email.body.contains("order-1"))
-      }
+      val ev = OrderConfirmedEvent("order-1", "cust-1", at)
+      runAndAwaitOneEmail(kafka, "OrderConfirmed", ev.orderId, ev.asJson)
+        .map { email =>
+          assertEquals(email.to, "cust-1")
+          assert(email.subject.contains("confirmed"))
+          assert(email.body.contains("order-1"))
+        }
     }
   }
 
-  test("a confirmed event sends the matching email".ignore) {
+  test("an OrderPaymentFailed event sends the matching email".ignore) {
     withContainers { kafka =>
-      val ev = event("order-2", "cust-2", OrderStatusChanged.Confirmed)
-      runAndAwaitOneEmail(kafka, ev).map { email =>
-        assertEquals(email.to, "cust-2")
-        assert(email.subject.contains("confirmed"))
-        assert(email.body.contains("order-2"))
-      }
+      val ev =
+        OrderPaymentFailedEvent("order-2", "cust-2", "capture_failed", at)
+      runAndAwaitOneEmail(kafka, "OrderPaymentFailed", ev.orderId, ev.asJson)
+        .map { email =>
+          assertEquals(email.to, "cust-2")
+          assert(email.subject.contains("couldn't process your payment"))
+          assert(email.body.contains("order-2"))
+        }
     }
   }
 
-  test("a payment_failed event sends the matching email".ignore) {
+  test("an OrderCancelled event sends the matching email".ignore) {
     withContainers { kafka =>
-      val ev = event("order-3", "cust-3", OrderStatusChanged.PaymentFailed)
-      runAndAwaitOneEmail(kafka, ev).map { email =>
-        assertEquals(email.to, "cust-3")
-        assert(email.subject.contains("couldn't process your payment"))
-        assert(email.body.contains("order-3"))
-      }
+      val ev = OrderCancelledEvent("order-3", "cust-3", at)
+      runAndAwaitOneEmail(kafka, "OrderCancelled", ev.orderId, ev.asJson)
+        .map { email =>
+          assertEquals(email.to, "cust-3")
+          assert(email.subject.contains("cancelled"))
+          assert(email.body.contains("order-3"))
+        }
     }
   }
 
@@ -219,10 +201,15 @@ class OrderStatusChangedConsumerSuite
   ) {
     withContainers { kafka =>
       val config = configFor(kafka)
-      val goodEvent = event("order-4", "cust-4", OrderStatusChanged.Confirmed)
+      val goodEvent = OrderConfirmedEvent("order-4", "cust-4", at)
       for {
         _ <- produce(config, "bad-key", "not-json")
-        email <- runAndAwaitOneEmail(kafka, goodEvent)
+        email <- runAndAwaitOneEmail(
+          kafka,
+          "OrderConfirmed",
+          goodEvent.orderId,
+          goodEvent.asJson
+        )
       } yield {
         assertEquals(email.to, "cust-4")
         assert(email.subject.contains("confirmed"))
@@ -231,11 +218,11 @@ class OrderStatusChangedConsumerSuite
   }
 
   test(
-    "an envelope with an eventType other than OrderStatusChanged is ignored, not treated as malformed".ignore
+    "an envelope with an eventType other than the order lifecycle events is ignored".ignore
   ) {
     withContainers { kafka =>
       val config = configFor(kafka)
-      val goodEvent = event("order-6", "cust-6", OrderStatusChanged.Confirmed)
+      val goodEvent = OrderConfirmedEvent("order-6", "cust-6", at)
       for {
         _ <- produce(
           config,
@@ -246,7 +233,12 @@ class OrderStatusChangedConsumerSuite
             Json.obj("orderId" -> Json.fromString("order-reserved-6"))
           )
         )
-        email <- runAndAwaitOneEmail(kafka, goodEvent)
+        email <- runAndAwaitOneEmail(
+          kafka,
+          "OrderConfirmed",
+          goodEvent.orderId,
+          goodEvent.asJson
+        )
       } yield {
         assertEquals(email.to, "cust-6")
         assert(email.subject.contains("confirmed"))
@@ -259,10 +251,15 @@ class OrderStatusChangedConsumerSuite
   ) {
     withContainers { kafka =>
       val config = configFor(kafka)
-      val goodEvent = event("order-5", "cust-5", OrderStatusChanged.Confirmed)
+      val goodEvent = OrderConfirmedEvent("order-5", "cust-5", at)
       for {
         _ <- produceNullValue(config, "null-value-key")
-        email <- runAndAwaitOneEmail(kafka, goodEvent)
+        email <- runAndAwaitOneEmail(
+          kafka,
+          "OrderConfirmed",
+          goodEvent.orderId,
+          goodEvent.asJson
+        )
       } yield {
         assertEquals(email.to, "cust-5")
         assert(email.subject.contains("confirmed"))

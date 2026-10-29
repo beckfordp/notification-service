@@ -15,7 +15,7 @@ import scala.concurrent.duration._
 import scala.jdk.CollectionConverters._
 
 /** Proves `KafkaConsumers.supervised`'s DLQ-routing property for
-  * `OrderStatusChangedConsumer` (TD-2.4, ADR 0010).
+  * `OrderEventsConsumer` (TD-2.4, ADR 0010).
   *
   * Unlike order-service's own `KafkaConsumersSuite` (which also proves a
   * *merge-isolation* property — wrapping two consumers individually, then
@@ -29,7 +29,7 @@ import scala.jdk.CollectionConverters._
   * `KafkaConsumersSuite`. This test class gets its own fresh Testcontainers
   * Kafka instance (one per class, per `TestContainerForAll`) and has exactly
   * one test, so there's no risk of the cross-test message leakage found in the
-  * *separate*, still-`.ignore`'d `OrderStatusChangedConsumerSuite` (which
+  * *separate*, still-`.ignore`'d `OrderEventsConsumerSuite` (which
   * shares one container across 6 tests) — no group-id override needed here.
   */
 class KafkaConsumersSuite extends CatsEffectSuite with TestContainerForAll {
@@ -129,34 +129,32 @@ class KafkaConsumersSuite extends CatsEffectSuite with TestContainerForAll {
           for {
             emailsRef <- Ref.of[IO, List[SentEmail]](Nil)
             emailClient = alwaysFailOn("cust-poison", emailsRef)
-            poisonEvent = OrderStatusChangedEvent(
+            poisonEvent = OrderConfirmedEvent(
               orderId = "order-poison",
               customerId = "cust-poison",
-              status = OrderStatusChanged.Confirmed,
               timestamp = Instant.parse("2026-01-01T00:00:00Z")
             )
-            healthyEvent = OrderStatusChangedEvent(
+            healthyEvent = OrderConfirmedEvent(
               orderId = "order-healthy",
               customerId = "cust-healthy",
-              status = OrderStatusChanged.Confirmed,
               timestamp = Instant.parse("2026-01-01T00:00:00Z")
             )
             _ <- produce(
               config,
-              OrderStatusChangedConsumer.topic,
+              OrderEventsConsumer.topic,
               poisonEvent.orderId,
               envelopeJson(
-                "OrderStatusChanged",
+                "OrderConfirmed",
                 poisonEvent.orderId,
                 poisonEvent.asJson
               )
             )
             _ <- produce(
               config,
-              OrderStatusChangedConsumer.topic,
+              OrderEventsConsumer.topic,
               healthyEvent.orderId,
               envelopeJson(
-                "OrderStatusChanged",
+                "OrderConfirmed",
                 healthyEvent.orderId,
                 healthyEvent.asJson
               )
@@ -180,7 +178,7 @@ class KafkaConsumersSuite extends CatsEffectSuite with TestContainerForAll {
                 }
             dlqMessages <- consumeOneFrom(
               config,
-              s"${OrderStatusChangedConsumer.topic}-dlq"
+              s"${OrderEventsConsumer.topic}-dlq"
             )
             metrics <- testMeter.collectMetrics
             dlqPublished = metrics

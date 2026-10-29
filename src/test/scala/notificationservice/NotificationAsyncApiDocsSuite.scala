@@ -23,7 +23,10 @@ class NotificationAsyncApiDocsSuite extends CatsEffectSuite {
       body <- response.bodyText.compile.string
     } yield {
       assertEquals(response.status, Status.Ok)
-      assert(clue(body).contains("OrderStatusChanged"))
+      assert(clue(body).contains("OrderConfirmed"))
+      assert(clue(body).contains("OrderPaymentFailed"))
+      assert(clue(body).contains("OrderCancelled"))
+      assert(!clue(body).contains("OrderStatusChanged"))
       assert(clue(body).contains("UserRegistered"))
       assert(clue(body).contains("DispatchConfirmed"))
       assert(clue(body).contains("DispatchFailed"))
@@ -31,7 +34,7 @@ class NotificationAsyncApiDocsSuite extends CatsEffectSuite {
   }
 
   test(
-    "GET /docs/asyncapi.json: OrderStatusChanged's status field documents its fixed set of values as a JSON Schema enum"
+    "GET /docs/asyncapi.json: order-events advertises the 3 per-outcome messages as oneOf"
   ) {
     val routes =
       AsyncApiDocs.routes[IO](
@@ -45,28 +48,20 @@ class NotificationAsyncApiDocsSuite extends CatsEffectSuite {
       )
       json <- response.as[io.circe.Json]
     } yield {
-      // Only one event type on this topic - unlike order-service's
-      // multiplexed topics, no "oneOf" wrapper, just a single message
-      // directly under subscribe.
-      val statusPayload = json.hcursor
+      val message = json.hcursor
         .downField("channels")
         .downField("order-events")
         .downField("subscribe")
         .downField("message")
-        .downField("payload")
-        .downField("properties")
-        .downField("status")
 
-      val enumValues = statusPayload
-        .downField("enum")
-        .values
-        .toList
-        .flatten
-        .flatMap(_.asString)
+      val messages = message.downField("oneOf").values.toList.flatten
+      val names = messages
+        .flatMap(_.hcursor.downField("name").as[String].toOption)
+        .toSet
 
       assertEquals(
-        enumValues.toSet,
-        Set("reservation_failed", "confirmed", "payment_failed")
+        names,
+        Set("OrderConfirmed", "OrderPaymentFailed", "OrderCancelled")
       )
     }
   }
