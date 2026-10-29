@@ -27,3 +27,7 @@
 - [x] Run `schemaRegistryCheck`; delete the old `order-events-OrderStatusChanged` artifact; confirm 3 new mirrors. — 3 mirrors registered in the shared `gluon` group; old artifact absent
 - [x] Run the live verification scripts against a running instance. — both `verify-order-status-changed.sh` and `verify-kafka-asyncapi-docs.sh` passed
 - [x] Task: Conductor - User Manual Verification 'Phase 4 — Verification & registry' (Protocol in workflow.md) — covered by the live scripts above
+
+## Phase: Review Fixes
+
+- [x] Task: Apply review suggestions 69aa2f1
