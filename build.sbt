@@ -27,7 +27,7 @@ val testcontainersScalaVersion = "0.44.1"
 val purekafkaVersion = "0.3.0"
 // Pinned to match the purerestlib version this service is built against — see
 // README's "Consuming purerest as a dependency" section.
-val purerestlibVersion = "0.1.0"
+val purerestlibVersion = "0.4.0"
 
 lazy val root = project
   .in(file("."))
