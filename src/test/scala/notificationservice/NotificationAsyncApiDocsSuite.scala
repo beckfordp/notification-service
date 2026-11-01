@@ -34,7 +34,7 @@ class NotificationAsyncApiDocsSuite extends CatsEffectSuite {
   }
 
   test(
-    "GET /docs/asyncapi.json: order-events advertises the 3 per-outcome messages as oneOf"
+    "GET /docs/asyncapi.json: notification-service receives order-events' 3 per-outcome messages"
   ) {
     val routes =
       AsyncApiDocs.routes[IO](
@@ -48,15 +48,20 @@ class NotificationAsyncApiDocsSuite extends CatsEffectSuite {
       )
       json <- response.as[io.circe.Json]
     } yield {
-      val message = json.hcursor
-        .downField("channels")
+      val operation = json.hcursor
+        .downField("operations")
         .downField("order-events")
-        .downField("subscribe")
-        .downField("message")
-
-      val messages = message.downField("oneOf").values.toList.flatten
-      val names = messages
-        .flatMap(_.hcursor.downField("name").as[String].toOption)
+      assertEquals(
+        operation.downField("action").as[String].toOption,
+        Some("receive")
+      )
+      val names = operation
+        .downField("messages")
+        .values
+        .toList
+        .flatten
+        .flatMap(_.hcursor.downField("$ref").as[String].toOption)
+        .map(_.split('/').last)
         .toSet
 
       assertEquals(
