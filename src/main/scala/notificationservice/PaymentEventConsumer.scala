@@ -27,10 +27,14 @@ object PaymentEventConsumer {
 
   /** Cents to the platform's `$12.34` display convention (gshop's
     * `formatPrice`, the only amount formatter in the codebase). Payment events
-    * carry no currency field.
+    * carry no currency field. Total: a negative amount gets a leading `-`
+    * (widened to `Long` so `Int.MinValue` has an absolute value).
     */
-  def formatAmount(amountCents: Int): String =
-    f"$$${amountCents / 100}.${amountCents % 100}%02d"
+  def formatAmount(amountCents: Int): String = {
+    val abs = math.abs(amountCents.toLong)
+    val sign = if (amountCents < 0) "-" else ""
+    f"$sign$$${abs / 100}.${abs % 100}%02d"
+  }
 
   /** Exposed for tests: the email content is pure. */
   def receiptEmail(event: PaymentCapturedEvent): (String, String) =

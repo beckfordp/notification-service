@@ -18,15 +18,11 @@ import scala.jdk.CollectionConverters._
 /** Proves `KafkaConsumers.supervised`'s DLQ-routing property for
   * `OrderEventsConsumer` (TD-2.4, ADR 0010).
   *
-  * Unlike order-service's own `KafkaConsumersSuite` (which also proves a
-  * *merge-isolation* property — wrapping two consumers individually, then
-  * merging, so a crash in one doesn't restart the other), notification-service
-  * has only one consumer: there's no merge, so no merge-isolation property to
-  * prove here. `StreamSupervisor`'s restart-with-backoff behavior itself is
-  * already proven by `purekafka`'s own `StreamSupervisorSuite` against a
-  * synthetic `Stream[F, O]` — re-proving that generic mechanism again here,
-  * through this thin single-consumer wrapper, would add no wiring-specific
-  * value. Only the DLQ-routing test is adapted, mirroring payment-service's own
+  * The merge-isolation property (each of the four consumers supervised
+  * individually, so one crashing doesn't restart the others) isn't re-proven
+  * here: `StreamSupervisor` itself is covered by `purekafka`'s
+  * `StreamSupervisorSuite`, and per-consumer routing by the broker-free
+  * `ConsumerHandlersSuite`. Mirrors payment-service's own
   * `KafkaConsumersSuite`. This test class gets its own fresh Testcontainers
   * Kafka instance (one per class, per `TestContainerForAll`) and has exactly
   * one test, so there's no risk of the cross-test message leakage found in the

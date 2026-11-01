@@ -8,10 +8,11 @@ import purekafka.docs.{
 
 /** Registers notification-service's Kafka event contracts for AsyncAPI
   * documentation (ADR 0010's AsyncAPI follow-up). It consumes the three
-  * per-outcome order events (`OrderConfirmed`/`OrderPaymentFailed`/
-  * `OrderCancelled`) on `order-events` and `UserRegistered` on `user-events` -
-  * `Subscribe` only. No producer side at all - this service is a pure
-  * Kafka-to-email relay, no outbox, no direct publish call.
+  * per-outcome order events on `order-events`, `UserRegistered` on
+  * `user-events`, `DispatchConfirmed`/`DispatchFailed` on `fulfilment-events`
+  * and `PaymentCaptured`/`PaymentFailed` on `payment-events` - `Subscribe`
+  * only. No producer side at all - this service is a pure Kafka-to-email relay,
+  * no outbox, no direct publish call.
   *
   * Implements `AsyncApiChannelsProvider` (not just a plain `List`) so the
   * sbt-purekafka-docs plugin's `AsyncApiSpecWriter` can load this singleton

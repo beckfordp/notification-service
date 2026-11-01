@@ -69,4 +69,13 @@ class PaymentEventsSuite extends CatsEffectSuite {
     assertEquals(PaymentEventConsumer.formatAmount(5), "$0.05")
     assertEquals(PaymentEventConsumer.formatAmount(10000), "$100.00")
   }
+
+  test("amount formatting puts the sign in front for negative amounts") {
+    assertEquals(PaymentEventConsumer.formatAmount(-150), "-$1.50")
+    assertEquals(PaymentEventConsumer.formatAmount(-5), "-$0.05")
+    assertEquals(
+      PaymentEventConsumer.formatAmount(Int.MinValue),
+      "-$21474836.48"
+    )
+  }
 }

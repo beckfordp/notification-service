@@ -25,8 +25,10 @@
   to document); `/docs` returns 404 until a new route exists worth
   documenting
 - purekafka.docs (`AsyncApiChannel`/`Docs`) — generates AsyncAPI
-  documentation for both consumed channels (`OrderStatusChanged` on
-  `order-events`, `UserRegistered` on `user-events`; `AsyncApiChannels`),
+  documentation for every consumed channel (three order outcomes on
+  `order-events`, `UserRegistered` on `user-events`, two dispatch outcomes on
+  `fulfilment-events`, two capture outcomes on `payment-events`;
+  `AsyncApiChannels`),
   served at `/docs/asyncapi.json` (raw spec) and
   `/docs/asyncapi` (rendered static HTML) — this service's only
   generated API documentation (no OpenAPI/Swagger, no CRUD API).
@@ -55,7 +57,7 @@
   port/metrics-port/service-name, since `PostgresConfig` was removed)
 
 ## Shared platform library
-- `purerestlib` 0.1.0 (`io.github.beckfordp`) — tracing, structured logging,
+- `purerestlib` 0.4.0 (`io.github.beckfordp`) — tracing, structured logging,
   metrics, resilience (retry + circuit breaker), tapir-based docs. Consumed
   as a published GitHub Packages artifact, never vendored/`.dependsOn`.
   ADR 0005 flags a possible future migration off GitHub Packages (JitPack or
@@ -68,7 +70,7 @@
 - log4cats-testing 2.8.0 — assert on structured log output
 - scalafmt (default Scala 3 style) — `sbt scalafmtCheck test` run in CI
 - testcontainers-scala-kafka — added for US-7.1's consumer integration
-  tests (`OrderStatusChangedConsumerSuite`). The original
+  tests (now `OrderEventsConsumerSuite`). The original
   Docker-API-version blocker (docker-java hardcoded to API 1.32,
   rejected by this machine's Docker ≥ 1.40) was fixed 2026-10-24 by
   bumping `testcontainersScalaVersion` to 0.44.1 (same fix `purerest`'s
@@ -89,7 +91,7 @@
 
 ## Messaging
 - fs2-kafka 3.6.0 — consumer side only (no publish side for this
-  service). `OrderStatusChangedConsumer` subscribes to `order-events`
+  service). `OrderEventsConsumer` subscribes to `order-events`
   with null-safe `Deserializer.option` for both key and value from the
   start. Group id `notification-service-order-events` (corrected from a
   stale note here naming a different, never-actual id). The same pattern
@@ -101,6 +103,11 @@
   wraps its per-message processing (bounded retry, then routes to
   `order-events-dlq` / `user-events-dlq` / `fulfilment-events-dlq` /
   `payment-events-dlq` on exhaustion) — TD-2.3/TD-2.4, ADR 0010.
+  Per-record handling is shared (`EnvelopeHandler`, TD-16.6): undecodable
+  envelopes/payloads go raw to the DLQ too, unknown event types are logged
+  and skipped, null values are logged and skipped.
+  `KafkaConsumers.watched` fails `Main` if the merged stream dies (e.g. DLQ
+  producer acquisition), so the pod restarts.
   `KafkaConsumers.supervised` merges the four supervised streams so a crash
   in one never restarts the others. Replaces the old hand-rolled `readyRef`/
   `onFinalizeCase` restart signal (found broken 2026-10-09 — stuck at
