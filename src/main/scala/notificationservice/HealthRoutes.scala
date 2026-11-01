@@ -19,10 +19,25 @@ import sttp.tapir.server.http4s.Http4sServerInterpreter
 object HealthRoutes {
 
   private val healthEndpoint: PublicEndpoint[Unit, Unit, Unit, Any] =
-    endpoint.get.in("health").out(statusCode(StatusCode.Ok))
+    endpoint.get
+      .in("health")
+      .out(statusCode(StatusCode.Ok))
+      .summary("Liveness check")
+      .description("200 while the process is up. Checks no dependencies.")
+      .tag("health")
 
   private val readyEndpoint: PublicEndpoint[Unit, Unit, Unit, Any] =
-    endpoint.get.in("health" / "ready").out(statusCode(StatusCode.Ok))
+    endpoint.get
+      .in("health" / "ready")
+      .out(statusCode(StatusCode.Ok))
+      .summary("Readiness check")
+      .description(
+        "Always 200 while the process is up: this service has no datastore " +
+          "to gate readiness on, and the Kafka consumers are supervised with " +
+          "restart-with-backoff rather than left permanently dead, so there " +
+          "is no not-ready state to report."
+      )
+      .tag("health")
 
   def healthServerEndpoint[F[_]: Applicative]: ServerEndpoint[Any, F] =
     healthEndpoint.serverLogicSuccess[F](_ => Applicative[F].unit)
