@@ -53,6 +53,11 @@ order-service `rest-docs_20261101`, and assert it in a test.
 | GET /health | Liveness check | 200 while the process is up. Checks no dependencies. | health |
 | GET /health/ready | Readiness check | Always 200 while the process is up: this service has no datastore to gate readiness on, and the Kafka consumers are supervised with restart-with-backoff rather than left permanently dead, so there is no not-ready state to report. | health |
 
+`/docs`, `/docs/docs.yaml` (Swagger UI/spec from `purerest.docs`) and
+`/docs/asyncapi*` (from `purekafka.docs`) are framework-served documentation
+routes, not application endpoints passed to `Docs.routes`; the coverage test
+and this appendix cover the two application endpoints above.
+
 ### Parameters
 None. Neither endpoint takes a path, query, header or cookie input, so there is
 no `.description`/`.example` to add.
