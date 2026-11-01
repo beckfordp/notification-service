@@ -2,6 +2,9 @@
 
 This file tracks all major tracks for the project.
 
+- [~] **Track: TD-20.9 REST docs**
+  *Link: [./tracks/rest-docs_20261101/](./tracks/rest-docs_20261101/)*
+
 ---
 
 ## Backlog
@@ -22,7 +25,6 @@ through the spec/plan questions and promote it into a real track above.
   un-ignored). Deliberately left out of that track's scope. Fix: give
   each test its own unique consumer group id (or topic), mirroring how
   other suites avoid this.
-- TD-20.9 — REST docs: endpoint/parameter/DTO descriptions and examples, coverage test (see `gluon/TECHNICAL_DEBT.md` TD-20.9)
 
 
 ---
