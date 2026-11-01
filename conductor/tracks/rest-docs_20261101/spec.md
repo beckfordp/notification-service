@@ -45,7 +45,9 @@ order-service `rest-docs_20261101`, and assert it in a test.
 - New endpoints, request/response bodies, authentication or error variants.
 - Any change to the always-200 readiness semantics.
 
-## Appendix: proposed descriptions (2026-11-01, pending user approval)
+## Appendix: approved descriptions (2026-11-01)
+
+Approved exactly as written by the user on 2026-11-01.
 
 ### Endpoints
 | Endpoint | summary | description | tag |
