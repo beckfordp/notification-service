@@ -9,7 +9,7 @@
 ## Phase 2 — Consumer lifecycle and cleanup (M4, L1, L2)
 
 - [x] Task: Surface consumer-fiber failure: `KafkaConsumers.resource` yields a watcher that logs and raises; `Main` fails on it. — 07bcbb9
-- [~] Task: Sign-aware `formatAmount`; stale-doc fixes.
+- [x] Task: Sign-aware `formatAmount`; stale-doc fixes. — 0fd5675
 - [ ] Task: Conductor - User Manual Verification 'Phase 2' (Protocol in workflow.md) — suite
 
 **Risks:** DLQ on decode failure retries `dlqRetry` times before publishing (adds ~1s per bad record, payment-service precedent); `Main` now exits if consumers die (intended).
