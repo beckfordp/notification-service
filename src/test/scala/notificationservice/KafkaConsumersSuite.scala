@@ -70,8 +70,6 @@ class KafkaConsumersSuite extends CatsEffectSuite with TestContainerForAll {
       case None    => IO.sleep(200.millis) *> pollUntil(check)
     }
 
-  final case class SentEmail(to: String, subject: String, body: String)
-
   private def awaitEmail(
       emailsRef: Ref[IO, List[SentEmail]]
   ): IO[SentEmail] =

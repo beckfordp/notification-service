@@ -47,8 +47,6 @@ class OrderEventsConsumerSuite
 
   override val containerDef: KafkaContainer.Def = KafkaContainer.Def()
 
-  final case class SentEmail(to: String, subject: String, body: String)
-
   private def configFor(kafka: KafkaContainer): KafkaConfig =
     KafkaConfig(bootstrapServers = kafka.bootstrapServers)
 
