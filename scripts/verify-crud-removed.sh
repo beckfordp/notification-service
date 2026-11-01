@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # Verifies Phase 2 of track strip-crud_20261002 (remove Postgres/CRUD scaffold):
-# brings up docker-compose (now declaring zero services) + a real sbt run
+# brings up docker-compose (Kafka only; no Postgres) + a real sbt run
 # instance with NO Postgres running anywhere, then confirms the service still
 # boots and serves health checks, and that the old CRUD surface is gone.
 #
@@ -41,9 +41,9 @@ check() {
   fi
 }
 
-echo "1. docker-compose.yml now declares zero services (no Postgres anywhere)..."
-service_count="$(docker compose config --services | wc -l | tr -d ' ')"
-check "docker-compose.yml declares zero services" "0" "$service_count"
+echo "1. docker-compose.yml declares no Postgres service..."
+postgres_count="$(docker compose config --services | grep -cx 'postgres' || true)"
+check "docker-compose.yml declares no Postgres service" "0" "$postgres_count"
 
 echo
 echo "2. Starting notification-service (sbt run) in the background, no GITHUB_TOKEN-for-Postgres needed..."
@@ -68,8 +68,8 @@ echo "4. The old CRUD surface is gone..."
 create_status="$(curl -s -o /dev/null -w '%{http_code}' -X POST http://localhost:8080/notifications \
   -H "Content-Type: application/json" -d '{}')"
 check "POST /notifications returns 404 (route no longer exists)" "404" "$create_status"
-docs_status="$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/docs)"
-check "GET /docs returns 404 (Docs wrapper removed - nothing left to document)" "404" "$docs_status"
+docs_status="$(curl -s -L -o /dev/null -w '%{http_code}' http://localhost:8080/docs)"
+check "GET /docs returns 200 (Swagger UI; TD-20.9)" "200" "$docs_status"
 
 echo
 if [ "$FAILED" -eq 0 ]; then

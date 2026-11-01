@@ -33,8 +33,8 @@
   `fulfilment-events`, two capture outcomes on `payment-events`;
   `AsyncApiChannels`),
   served at `/docs/asyncapi.json` (raw spec) and
-  `/docs/asyncapi` (rendered static HTML) — this service's only
-  generated API documentation (no OpenAPI/Swagger, no CRUD API).
+  `/docs/asyncapi` (rendered static HTML) — the event-side generated API
+  documentation, alongside the REST OpenAPI spec above; still no CRUD API.
   Generation handled by the `sbt-purekafka-docs` plugin, auto-chained
   after `Compile / compile` (ADR 0010).
 - `schemaRegistryCheck` (sbt-purekafka-docs, Rework 5 step 3/ADR 0003) —

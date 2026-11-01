@@ -45,6 +45,16 @@ curl http://localhost:8080/health/ready
 
 `docker-compose.yml` declares a single-node KRaft Kafka broker for local runs.
 
+## View REST/OpenAPI docs
+
+The two health endpoints are documented via `purerest.docs.Docs` (gluon TD-20.9):
+
+- **Swagger UI** — http://localhost:8080/docs
+- **Raw OpenAPI spec** — http://localhost:8080/docs/docs.yaml
+
+`NotificationDocsSuite` keeps `Docs.undocumented` at zero, and
+`scripts/verify-rest-docs.sh` checks the served spec end-to-end.
+
 ## View Kafka AsyncAPI docs
 
 `OrderStatusChangedConsumer` consumes `OrderStatusChanged` on `order-events`,
@@ -53,8 +63,8 @@ curl http://localhost:8080/health/ready
 `fulfilment-events` (shipped / dispatch-failed emails), and `PaymentEventConsumer`
 consumes `PaymentCaptured`/`PaymentFailed` on `payment-events` (receipt /
 payment-problem emails). All are registered for [AsyncAPI](https://www.asyncapi.com/) documentation via
-`purekafka.docs` (see `AsyncApiChannels`) — this service has no OpenAPI/Swagger docs (no CRUD
-API at all), so this is its only generated API documentation.
+`purekafka.docs` (see `AsyncApiChannels`) — the event-side counterpart to the REST/OpenAPI docs
+above. This service still has no CRUD API.
 
 Generation is handled by the `sbt-purekafka-docs` plugin (`asyncApiChannelsClass` in `build.sbt`),
 auto-chained after `Compile / compile` — every `sbt compile`/`run`/`Docker/publishLocal` already

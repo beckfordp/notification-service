@@ -24,9 +24,9 @@ one-db-per-service) don't apply here:
   HTTP edge to map them to — log them loudly rather than silently dropping,
   same reliability stance `system-design.md` already applies to the
   producer side (order-service/payment-service's publishers)
-- Swagger/OpenAPI docs (`purerest.docs.Docs`) only apply if a route exists —
-  drop the `/docs` endpoint along with the rest of the CRUD surface if
-  nothing is left to document
+- Swagger/OpenAPI docs (`purerest.docs.Docs`) cover every served route,
+  including the two health endpoints (`/docs` + `/docs/docs.yaml`, TD-20.9).
+  Still no CRUD API or DTO surface to document
 
 ## Testing
 - scalafmt + munit + munit-cats-effect
