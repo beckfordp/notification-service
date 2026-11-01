@@ -1,0 +1,1 @@
+Phase 1 verification (prompting off): sbt scalafmtCheckAll scalafmtSbtCheck test -> 52 passed, 6 ignored (OrderEventsConsumerSuite, backlog). Manual verification = suite: EnvelopeHandlerSuite + ConsumerHandlersSuite cover null/bad envelope/bad payload/unknown type/routed paths for all four consumers broker-free; KafkaConsumersSuite (Testcontainers) proves DLQ wiring end-to-end.
