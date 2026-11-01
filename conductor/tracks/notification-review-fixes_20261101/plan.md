@@ -13,3 +13,7 @@
 - [x] Task: Conductor - User Manual Verification 'Phase 2' (Protocol in workflow.md) — suite (56 green) — ee4707f
 
 **Risks:** DLQ on decode failure retries `dlqRetry` times before publishing (adds ~1s per bad record, payment-service precedent); `Main` now exits if consumers die (intended).
+
+## Phase: Review Fixes
+
+- [x] Task: Apply review suggestions — reuse the shared `SentEmail` fixture in `KafkaConsumersSuite`/`OrderEventsConsumerSuite` (were duplicate local copies); rename `TestDeadLetter.scala` → `TestFixtures.scala` (holds both fixtures). Accepted, not changed: `EnvelopeHandler` rebuilds its route map per record (4 entries max); decode failures pass through `dlqRetry` before the DLQ publish (payment-service precedent). — d2261ad
