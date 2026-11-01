@@ -1,0 +1,1 @@
+Task: Apply review suggestions. Shared SentEmail fixture reused by KafkaConsumersSuite and OrderEventsConsumerSuite; TestDeadLetter.scala renamed TestFixtures.scala. 56 passed, 6 ignored.
