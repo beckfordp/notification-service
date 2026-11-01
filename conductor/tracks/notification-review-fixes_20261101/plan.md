@@ -6,10 +6,10 @@
 - [x] Task: Route all four consumers through it via a broker-free `handle`, narrowed to `MonadThrow`; `EmailClient.logging` unconstrained; per-consumer handler tests. — d9361e8
 - [x] Task: Conductor - User Manual Verification 'Phase 1' (Protocol in workflow.md) — suite (52 green) — ac04dcc
 
-## Phase 2 — Consumer lifecycle and cleanup (M4, L1, L2)
+## Phase 2 — Consumer lifecycle and cleanup (M4, L1, L2) [checkpoint: ee4707f]
 
 - [x] Task: Surface consumer-fiber failure: `KafkaConsumers.resource` yields a watcher that logs and raises; `Main` fails on it. — 07bcbb9
 - [x] Task: Sign-aware `formatAmount`; stale-doc fixes. — 0fd5675
-- [ ] Task: Conductor - User Manual Verification 'Phase 2' (Protocol in workflow.md) — suite
+- [x] Task: Conductor - User Manual Verification 'Phase 2' (Protocol in workflow.md) — suite (56 green) — ee4707f
 
 **Risks:** DLQ on decode failure retries `dlqRetry` times before publishing (adds ~1s per bad record, payment-service precedent); `Main` now exits if consumers die (intended).
