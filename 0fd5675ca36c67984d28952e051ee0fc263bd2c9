@@ -1,0 +1,1 @@
+Task: Sign-aware formatAmount + stale docs. formatAmount widens to Long and prefixes '-' (was $-1.-50); test incl. Int.MinValue. Docs: AsyncApiChannels scaladoc (all 4 topics), KafkaConsumersSuite scaladoc (4 merged consumers, not 1), tech-stack.md (purerestlib 0.4.0, OrderEventsConsumer, channel list, EnvelopeHandler/watched). Why: review L1/L2.
