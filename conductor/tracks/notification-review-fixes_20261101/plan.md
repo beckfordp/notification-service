@@ -2,8 +2,8 @@
 
 ## Phase 1 — Shared envelope handling (H1, H2, M1, M2, M3)
 
-- [ ] Task: Shared `EnvelopeHandler` (failing tests first): null skipped; bad envelope and bad known payload dead-lettered raw; unknown type logged; known type guarded.
-- [ ] Task: Route all four consumers through it via a broker-free `handle`, narrowed to `MonadThrow`; `EmailClient.logging` unconstrained; per-consumer handler tests.
+- [x] Task: Shared `EnvelopeHandler` (failing tests first): null skipped; bad envelope and bad known payload dead-lettered raw; unknown type logged; known type guarded. — 102f7d9
+- [~] Task: Route all four consumers through it via a broker-free `handle`, narrowed to `MonadThrow`; `EmailClient.logging` unconstrained; per-consumer handler tests.
 - [ ] Task: Conductor - User Manual Verification 'Phase 1' (Protocol in workflow.md) — suite
 
 ## Phase 2 — Consumer lifecycle and cleanup (M4, L1, L2)
