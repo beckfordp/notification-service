@@ -1,0 +1,1 @@
+Task: Shared EnvelopeHandler. Added EnvelopeHandler/EnvelopeRoute (one per-record decision for all consumers: null skip, bad envelope/payload -> raw to <topic>-dlq, unknown type logged, routed handler under DeadLetter.guard; MonadThrow only). Tests: EnvelopeHandlerSuite (6), TestDeadLetter/RecordingEmailClient fixtures. Why: review H1/M1/M2/M3.
