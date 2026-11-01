@@ -17,4 +17,4 @@
 - [x] Task: Conductor - User Manual Verification 'Phase 4: Smoke test' (Protocol in workflow.md) — `scripts/verify-rest-docs.sh` PASS fa130d3
 
 ## Phase: Review Fixes
-- [ ] Task: Apply review suggestions
+- [x] Task: Apply review suggestions — no code findings; updated stale docs (README, tech-stack, product-guidelines no longer claim `/docs` is absent/404) and fixed `verify-crud-removed.sh` (`/docs` now 200 via Swagger UI; Postgres-removal check no longer assumes zero compose services) — PASS 6 checks f2f7b82
