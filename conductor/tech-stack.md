@@ -20,10 +20,13 @@
 
 ## API layer
 - tapir 1.11.25 (tapir-core, tapir-json-circe, tapir-http4s-server) —
-  defines the two health endpoints only. No longer wraps
-  `purerest.docs.Docs` (removed along with the CRUD surface — nothing left
-  to document); `/docs` returns 404 until a new route exists worth
-  documenting
+  defines the two health endpoints only. Since `rest-docs_20261101`
+  (TD-20.9) they are served through `purerest.docs.Docs.routes`, which
+  also generates the OpenAPI spec at `/docs/docs.yaml` and Swagger UI at
+  `/docs`; `NotificationDocsSuite` asserts `Docs.undocumented` is empty.
+  The CRUD routes/DTOs removed by `strip-crud_20261002` stay gone, so
+  there are no parameters, request/response bodies or error variants in
+  the spec
 - purekafka.docs (`AsyncApiChannel`/`Docs`) — generates AsyncAPI
   documentation for every consumed channel (three order outcomes on
   `order-events`, `UserRegistered` on `user-events`, two dispatch outcomes on
@@ -57,8 +60,9 @@
   port/metrics-port/service-name, since `PostgresConfig` was removed)
 
 ## Shared platform library
-- `purerestlib` 0.4.0 (`io.github.beckfordp`) — tracing, structured logging,
-  metrics, resilience (retry + circuit breaker), tapir-based docs. Consumed
+- `purerestlib` 0.7.3 (`io.github.beckfordp`) — tracing, structured logging,
+  metrics, resilience (retry + circuit breaker), tapir-based docs and the
+  `Docs.undocumented` coverage check (TD-20.1). Consumed
   as a published GitHub Packages artifact, never vendored/`.dependsOn`.
   ADR 0005 flags a possible future migration off GitHub Packages (JitPack or
   Maven Central) — not yet adopted. (Resilience middleware is `Client[F]`-

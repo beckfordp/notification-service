@@ -29,7 +29,9 @@ val testcontainersScalaVersion = "0.44.1"
 val purekafkaVersion = "0.6.1"
 // Pinned to match the purerestlib version this service is built against — see
 // README's "Consuming purerest as a dependency" section.
-val purerestlibVersion = "0.4.0"
+// v0.7.3: purerest.docs.Docs.undocumented coverage check (gluon TD-20.1),
+// used by NotificationDocsSuite (gluon TD-20.9).
+val purerestlibVersion = "0.7.3"
 
 lazy val root = project
   .in(file("."))
