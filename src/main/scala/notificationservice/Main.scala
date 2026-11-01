@@ -9,8 +9,9 @@ import org.http4s.ember.server.EmberServerBuilder
   * dependency, per the composition pattern documented in `purerest`'s
   * `docs/functional-design-patterns-scala-haskell-category-theory.md` ("Scaling
   * tagless final without Cake: bundling dependencies into `Resource`-built
-  * modules"). Mirrors order-service's/payment-service's/inventory-service's own
-  * `Main.scala`.
+  * modules"). Runs until the Kafka consumers fail (`KafkaConsumers.watched`),
+  * then releases everything and exits non-zero so the pod restarts. Mirrors
+  * order-service's/payment-service's/inventory-service's own `Main.scala`.
   */
 object Main extends IOApp.Simple {
 
@@ -33,7 +34,7 @@ object Main extends IOApp.Simple {
       )("notification-service starting")
     )
     emailClient = EmailClient.logging[IO](telemetry.logger)
-    _ <- KafkaConsumers.resource[IO](
+    consumersFailed <- KafkaConsumers.resource[IO](
       config.kafka,
       emailClient,
       telemetry.logger,
@@ -50,5 +51,5 @@ object Main extends IOApp.Simple {
       .withPort(port)
       .withHttpApp(routes.orNotFound)
       .build
-  } yield ()).useForever
+  } yield consumersFailed).use(identity)
 }
