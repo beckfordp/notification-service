@@ -12,6 +12,9 @@ import java.time.Instant
   * cross-repo doc, not these case classes, is the source of truth. Replaces the
   * single `OrderStatusChanged` event in TD-15; dispatch outcomes stay on
   * `fulfilment-events`.
+  *
+  * Descriptions/examples are copied from the producer's artifact in gluon's
+  * `registry/` (TD-19); nothing checks they stay current.
   */
 @description(
   "Order confirmed: order-service consumed PaymentCaptured and moved the order to confirmed."

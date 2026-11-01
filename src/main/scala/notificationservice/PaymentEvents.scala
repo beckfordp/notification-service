@@ -15,6 +15,9 @@ import java.time.Instant
 
 /** Published once per consumed `DispatchConfirmed` (US-19.1) - the point money
   * actually moves.
+  *
+  * Descriptions/examples are copied from the producer's artifact in gluon's
+  * `registry/` (TD-19); nothing checks they stay current.
   */
 @description(
   "Money moved: capture succeeded after DispatchConfirmed. Published once per order."

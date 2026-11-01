@@ -7,6 +7,9 @@ import sttp.tapir.Schema.annotations.{description, encodedExample}
 
 /** `user-events: UserRegistered` payload (US-16.3 producer, US-16.4 consumer).
   * Contract: `gluon/docs/system-design.md`'s "Payload contracts".
+  *
+  * Descriptions/examples are copied from the producer's artifact in gluon's
+  * `registry/` (TD-19); nothing checks they stay current.
   */
 @description("New user signed up: POST /auth/signup succeeded.")
 final case class UserRegisteredEvent(
