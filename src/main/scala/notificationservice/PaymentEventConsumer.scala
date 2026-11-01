@@ -1,10 +1,10 @@
 package notificationservice
 
+import cats.{FlatMap, MonadThrow}
 import cats.effect.Async
 import cats.syntax.all._
 import fs2.Stream
 import fs2.kafka._
-import io.circe.parser.decode
 import org.typelevel.log4cats.StructuredLogger
 import purekafka.consumer.DeadLetter
 
@@ -45,6 +45,44 @@ object PaymentEventConsumer {
       s"We couldn't take payment of ${formatAmount(event.amountCents)} for order ${event.orderId}: ${event.reason}."
     )
 
+  /** One `payment-events` record, minus the offset commit - split from [[run]]
+    * so the routing is testable without a broker. Per-record rules:
+    * [[EnvelopeHandler]].
+    */
+  def handle[F[_]: MonadThrow](
+      emailClient: EmailClient[F],
+      logger: StructuredLogger[F],
+      deadLetter: DeadLetter[F, String, String]
+  )(key: String, value: Option[String]): F[Unit] = {
+    def send(orderId: String, email: (String, String), outcome: String) =
+      sendEmail(emailClient, logger, orderId, email, outcome)
+    EnvelopeHandler.handle[F](
+      topic,
+      List(
+        EnvelopeRoute.of[F, PaymentCapturedEvent]("PaymentCaptured") { e =>
+          send(e.orderId, receiptEmail(e), "payment_captured")
+        },
+        EnvelopeRoute.of[F, PaymentFailedEvent]("PaymentFailed") { e =>
+          send(e.orderId, failedEmail(e), "payment_failed")
+        }
+      ),
+      logger,
+      deadLetter
+    )(key, value)
+  }
+
+  private def sendEmail[F[_]: FlatMap](
+      emailClient: EmailClient[F],
+      logger: StructuredLogger[F],
+      orderId: String,
+      email: (String, String),
+      outcome: String
+  ): F[Unit] =
+    emailClient.send(orderId, email._1, email._2) *>
+      logger.info(Map("order_id" -> orderId, "outcome" -> outcome))(
+        s"Sent payment email (order_id=$orderId, outcome=$outcome)"
+      )
+
   def run[F[_]: Async](
       config: KafkaConfig,
       emailClient: EmailClient[F],
@@ -56,73 +94,9 @@ object PaymentEventConsumer {
       .subscribeTo(topic)
       .records
       .evalMap { committable =>
-        def send(
-            orderId: String,
-            email: (String, String),
-            outcome: String
-        ): F[Unit] =
-          emailClient.send(orderId, email._1, email._2) *>
-            logger.info(Map("order_id" -> orderId, "outcome" -> outcome))(
-              s"Sent payment email (order_id=$orderId, outcome=$outcome)"
-            )
-
-        def handleCaptured(event: PaymentCapturedEvent): F[Unit] =
-          send(event.orderId, receiptEmail(event), "payment_captured")
-
-        def handleFailed(event: PaymentFailedEvent): F[Unit] =
-          send(event.orderId, failedEmail(event), "payment_failed")
-
-        val key = committable.record.key.getOrElse("")
-
-        val handled: F[Unit] = committable.record.value match {
-          case None =>
-            logger.error(Map.empty)(
-              "Received payment-events record with a null value - skipping"
-            )
-          case Some(raw) =>
-            decode[EventEnvelope](raw) match {
-              case Left(error) =>
-                logger.error(
-                  Map("topic" -> topic, "bytes" -> raw.length.toString),
-                  error
-                )(
-                  "Failed to decode payment-events envelope"
-                )
-              case Right(envelope) =>
-                envelope.eventType match {
-                  case "PaymentCaptured" =>
-                    envelope.payload.as[PaymentCapturedEvent] match {
-                      case Left(error) =>
-                        logger.error(
-                          Map("topic" -> topic, "bytes" -> raw.length.toString),
-                          error
-                        )(
-                          "Failed to decode PaymentCaptured payload"
-                        )
-                      case Right(event) =>
-                        deadLetter.guard(topic, key, raw)(
-                          handleCaptured(event)
-                        )
-                    }
-                  case "PaymentFailed" =>
-                    envelope.payload.as[PaymentFailedEvent] match {
-                      case Left(error) =>
-                        logger.error(
-                          Map("topic" -> topic, "bytes" -> raw.length.toString),
-                          error
-                        )(
-                          "Failed to decode PaymentFailed payload"
-                        )
-                      case Right(event) =>
-                        deadLetter.guard(topic, key, raw)(handleFailed(event))
-                    }
-                  case other =>
-                    logger.info(
-                      Map("topic" -> topic, "event_type" -> other)
-                    )("Ignoring unrelated payment-events event type")
-                }
-            }
-        }
-        handled *> committable.offset.commit
+        handle(emailClient, logger, deadLetter)(
+          committable.record.key.getOrElse(""),
+          committable.record.value
+        ) *> committable.offset.commit
       }
 }

@@ -1,10 +1,10 @@
 package notificationservice
 
+import cats.{FlatMap, MonadThrow}
 import cats.effect.Async
 import cats.syntax.all._
 import fs2.Stream
 import fs2.kafka._
-import io.circe.parser.decode
 import org.typelevel.log4cats.StructuredLogger
 import purekafka.consumer.DeadLetter
 
@@ -38,6 +38,44 @@ object FulfilmentEventConsumer {
       s"Order ${event.orderId} could not be dispatched: ${event.reason}."
     )
 
+  /** One `fulfilment-events` record, minus the offset commit - split from
+    * [[run]] so the routing is testable without a broker. Per-record rules:
+    * [[EnvelopeHandler]].
+    */
+  def handle[F[_]: MonadThrow](
+      emailClient: EmailClient[F],
+      logger: StructuredLogger[F],
+      deadLetter: DeadLetter[F, String, String]
+  )(key: String, value: Option[String]): F[Unit] = {
+    def send(orderId: String, email: (String, String), outcome: String) =
+      sendEmail(emailClient, logger, orderId, email, outcome)
+    EnvelopeHandler.handle[F](
+      topic,
+      List(
+        EnvelopeRoute.of[F, DispatchConfirmedEvent]("DispatchConfirmed") { e =>
+          send(e.orderId, shippedEmail(e), "shipped")
+        },
+        EnvelopeRoute.of[F, DispatchFailedEvent]("DispatchFailed") { e =>
+          send(e.orderId, failedEmail(e), "dispatch_failed")
+        }
+      ),
+      logger,
+      deadLetter
+    )(key, value)
+  }
+
+  private def sendEmail[F[_]: FlatMap](
+      emailClient: EmailClient[F],
+      logger: StructuredLogger[F],
+      orderId: String,
+      email: (String, String),
+      outcome: String
+  ): F[Unit] =
+    emailClient.send(orderId, email._1, email._2) *>
+      logger.info(Map("order_id" -> orderId, "outcome" -> outcome))(
+        s"Sent fulfilment email (order_id=$orderId, outcome=$outcome)"
+      )
+
   def run[F[_]: Async](
       config: KafkaConfig,
       emailClient: EmailClient[F],
@@ -49,73 +87,9 @@ object FulfilmentEventConsumer {
       .subscribeTo(topic)
       .records
       .evalMap { committable =>
-        def send(
-            orderId: String,
-            email: (String, String),
-            outcome: String
-        ): F[Unit] =
-          emailClient.send(orderId, email._1, email._2) *>
-            logger.info(Map("order_id" -> orderId, "outcome" -> outcome))(
-              s"Sent fulfilment email (order_id=$orderId, outcome=$outcome)"
-            )
-
-        def handleConfirmed(event: DispatchConfirmedEvent): F[Unit] =
-          send(event.orderId, shippedEmail(event), "shipped")
-
-        def handleFailed(event: DispatchFailedEvent): F[Unit] =
-          send(event.orderId, failedEmail(event), "dispatch_failed")
-
-        val key = committable.record.key.getOrElse("")
-
-        val handled: F[Unit] = committable.record.value match {
-          case None =>
-            logger.error(Map.empty)(
-              "Received fulfilment-events record with a null value - skipping"
-            )
-          case Some(raw) =>
-            decode[EventEnvelope](raw) match {
-              case Left(error) =>
-                logger.error(
-                  Map("topic" -> topic, "bytes" -> raw.length.toString),
-                  error
-                )(
-                  "Failed to decode fulfilment-events envelope"
-                )
-              case Right(envelope) =>
-                envelope.eventType match {
-                  case "DispatchConfirmed" =>
-                    envelope.payload.as[DispatchConfirmedEvent] match {
-                      case Left(error) =>
-                        logger.error(
-                          Map("topic" -> topic, "bytes" -> raw.length.toString),
-                          error
-                        )(
-                          "Failed to decode DispatchConfirmed payload"
-                        )
-                      case Right(event) =>
-                        deadLetter.guard(topic, key, raw)(
-                          handleConfirmed(event)
-                        )
-                    }
-                  case "DispatchFailed" =>
-                    envelope.payload.as[DispatchFailedEvent] match {
-                      case Left(error) =>
-                        logger.error(
-                          Map("topic" -> topic, "bytes" -> raw.length.toString),
-                          error
-                        )(
-                          "Failed to decode DispatchFailed payload"
-                        )
-                      case Right(event) =>
-                        deadLetter.guard(topic, key, raw)(handleFailed(event))
-                    }
-                  case other =>
-                    logger.info(
-                      Map("topic" -> topic, "event_type" -> other)
-                    )("Ignoring unrelated fulfilment-events event type")
-                }
-            }
-        }
-        handled *> committable.offset.commit
+        handle(emailClient, logger, deadLetter)(
+          committable.record.key.getOrElse(""),
+          committable.record.value
+        ) *> committable.offset.commit
       }
 }
