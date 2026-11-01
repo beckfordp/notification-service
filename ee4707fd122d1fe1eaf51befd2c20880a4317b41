@@ -1,0 +1,1 @@
+Phase 2 verification (prompting off): sbt scalafmtCheckAll scalafmtSbtCheck test -> 56 passed, 6 ignored. Manual verification = suite (KafkaConsumersWatchedSuite covers errored/completed/running streams; PaymentEventsSuite negative amounts). Live deploy check at end of TD-20 track.
