@@ -1,11 +1,11 @@
 # Plan — notification-service: REST docs convention (gluon TD-20.9)
 
 ## Phase 1: purerestlib 0.7.3
-- [ ] Task: bump `purerestlibVersion` 0.4.0 → 0.7.3 (+ aligned pins); fix API drift until suite green; sync tech-stack.md
-- [ ] Task: Conductor - User Manual Verification 'Phase 1: purerestlib 0.7.3' (Protocol in workflow.md) — covered by suite
+- [x] Task: bump `purerestlibVersion` 0.4.0 → 0.7.3 (+ aligned pins); fix API drift until suite green; sync tech-stack.md — tapir/http4s/purekafka already aligned, no drift, 56/56 3c5e877
+- [x] Task: Conductor - User Manual Verification 'Phase 1: purerestlib 0.7.3' (Protocol in workflow.md) — covered by suite, 56/56 3c5e877
 
 ## Phase 2: Docs surface and per-endpoint error outputs
-- [ ] Task: serve the two health server endpoints through `purerest.docs.Docs.routes` in `AppRoutes` (OpenAPI at `/docs/docs.yaml` + Swagger UI at `/docs`), keeping AsyncAPI routes/static HTML ahead of the Swagger wildcard; no error outputs to narrow (both endpoints only return 200; `/health/ready` stays unconditional 200) — `NotificationDocsSuite` coverage test red with the actual gap count (uncommitted until Phase 3)
+- [~] Task: serve the two health server endpoints through `purerest.docs.Docs.routes` in `AppRoutes` (OpenAPI at `/docs/docs.yaml` + Swagger UI at `/docs`), keeping AsyncAPI routes/static HTML ahead of the Swagger wildcard; no error outputs to narrow (both endpoints only return 200; `/health/ready` stays unconditional 200) — `NotificationDocsSuite` coverage test red with 4 gaps (uncommitted until Phase 3)
 - [ ] Task: Conductor - User Manual Verification 'Phase 2: Docs surface and per-endpoint error outputs' (Protocol in workflow.md) — covered by suite
 
 ## Phase 3: Descriptions
