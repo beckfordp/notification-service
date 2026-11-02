@@ -10,6 +10,9 @@ val log4catsVersion = "2.8.0"
 val tapirVersion = "1.11.25"
 val fs2KafkaVersion = "3.6.0"
 val pureconfigVersion = "0.17.10"
+val skunkVersion = "1.0.0"
+val flywayVersion = "11.8.2"
+val postgresqlJdbcVersion = "42.7.13"
 // Bumped 0.43.6 -> 0.44.1 (testcontainers-java major version jump) to fix
 // Testcontainers-Kafka startup on this machine's Docker: 0.43.6's shaded
 // docker-java client hardcodes Docker API version 1.32 and ignores
@@ -32,6 +35,20 @@ val purekafkaVersion = "0.6.1"
 // v0.7.3: purerest.docs.Docs.undocumented coverage check (gluon TD-20.1),
 // used by NotificationDocsSuite (gluon TD-20.9).
 val purerestlibVersion = "0.7.3"
+
+// Skunk 1.0.0 depends on otel4s-core/-core-common/-core-metrics 0.16.0 (its own
+// optional tracing integration), which conflicts with purerestlib's otel4s 1.1.0
+// (an early-semver 0.x -> 1.x jump, which sbt's version-scheme conflict
+// detection treats as an error by default). "Highest version wins" is the
+// correct resolution here — nothing in this project invokes Skunk's otel4s
+// integration — so these three coordinates are pinned explicitly rather than
+// left to eviction. Mirrors order-service's build.sbt and purerest's own
+// "Transitive version drift" note.
+ThisBuild / dependencyOverrides ++= Seq(
+  "org.typelevel" %% "otel4s-core" % "1.1.0",
+  "org.typelevel" %% "otel4s-core-common" % "1.1.0",
+  "org.typelevel" %% "otel4s-core-metrics" % "1.1.0"
+)
 
 lazy val root = project
   .in(file("."))
@@ -105,6 +122,16 @@ lazy val root = project
       "com.softwaremill.sttp.tapir" %% "tapir-core" % tapirVersion,
       "com.softwaremill.sttp.tapir" %% "tapir-json-circe" % tapirVersion,
       "com.softwaremill.sttp.tapir" %% "tapir-http4s-server" % tapirVersion,
+      // skunk: non-blocking, pure-FP Postgres access for the sent_email
+      // audit store (ADM-2).
+      "org.tpolecat" %% "skunk-core" % skunkVersion,
+      // flyway: JDBC-based schema migration tool, run on startup to create
+      // sent_email. Independent of Skunk (which handles all runtime queries).
+      "org.flywaydb" % "flyway-core" % flywayVersion,
+      "org.flywaydb" % "flyway-database-postgresql" % flywayVersion,
+      // postgresql (pgjdbc): Runtime-only, used solely by Flyway to run
+      // migrations; loaded by JDBC's DriverManager via SPI.
+      "org.postgresql" % "postgresql" % postgresqlJdbcVersion % Runtime,
       // fs2-kafka: pure-FP, FS2-native Kafka consumer (US-7.1) - subscribes to
       // order.status-changed.
       "com.github.fd4s" %% "fs2-kafka" % fs2KafkaVersion,
@@ -124,6 +151,9 @@ lazy val root = project
       // testcontainers-scala: spins up a real, ephemeral Kafka broker for the
       // consumer's own integration tests.
       "com.dimafeng" %% "testcontainers-scala-kafka" % testcontainersScalaVersion % Test,
+      // and a real, ephemeral Postgres for the migration/store/route suites
+      // added by ADM-2.
+      "com.dimafeng" %% "testcontainers-scala-postgresql" % testcontainersScalaVersion % Test,
       "com.dimafeng" %% "testcontainers-scala-munit" % testcontainersScalaVersion % Test,
       // log4cats-testing: purerestlib keeps this Test-scoped (doesn't propagate to
       // consumers), so this service declares its own copy to assert on log output
