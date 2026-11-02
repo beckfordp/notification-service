@@ -11,8 +11,9 @@ This service's generated Postgres/CRUD scaffold has been stripped down (see
 `conductor/tracks/strip-crud_20261002/`) to match its intended role per
 [`gluon/docs/user-stories.md`](../../docs/user-stories.md) US-7: a **Kafka consumer
 only, no database**. It runs four supervised, DLQ-guarded consumers:
-`OrderStatusChanged` on `order-events` (US-7.1, matching status email),
-`UserRegistered` on `user-events` (US-16.4, welcome email),
+`OrderConfirmed`/`OrderPaymentFailed`/`OrderCancelled` on `order-events`
+(US-7.1/TD-15, matching status email; the old single `OrderStatusChanged`
+event is retired), `UserRegistered` on `user-events` (US-16.4, welcome email),
 `DispatchConfirmed`/`DispatchFailed` on `fulfilment-events` (US-17.5/18.4,
 shipped / dispatch-failed emails) and `PaymentCaptured`/`PaymentFailed` on
 `payment-events` (US-19.4, receipt / payment-problem emails). Email sending is
@@ -57,7 +58,8 @@ The two health endpoints are documented via `purerest.docs.Docs` (gluon TD-20.9)
 
 ## View Kafka AsyncAPI docs
 
-`OrderStatusChangedConsumer` consumes `OrderStatusChanged` on `order-events`,
+`OrderEventsConsumer` consumes `OrderConfirmed`/`OrderPaymentFailed`/
+`OrderCancelled` on `order-events`,
 `UserRegisteredConsumer` consumes `UserRegistered` on `user-events` (welcome email),
 `FulfilmentEventConsumer` consumes `DispatchConfirmed`/`DispatchFailed` on
 `fulfilment-events` (shipped / dispatch-failed emails), and `PaymentEventConsumer`
@@ -92,9 +94,9 @@ sbt scalafmtCheck test
 ```
 
 Unit tests cover every event model and email mapping. `KafkaConsumersSuite` is a
-Testcontainers Kafka integration test proving DLQ routing. The older
-`OrderStatusChangedConsumerSuite` remains `.ignore`'d pending its own fix (see
-`conductor/tracks.md`'s backlog).
+Testcontainers Kafka integration test proving DLQ routing. `OrderEventsConsumerSuite`'s
+broker-backed tests remain `.ignore`'d pending the shared-container group-id fix (see
+`conductor/tracks.md`'s backlog); the handler suites cover the same logic without a broker.
 
 ## Calling other services with resilience
 

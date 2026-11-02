@@ -9,13 +9,13 @@ goals. This document scopes that vision down to notification-service's own
 slice.
 
 ## What this service does
-notification-service closes the walking skeleton: it consumes
-`OrderStatusChanged` envelopes on the `order-events` domain topic and sends
-the matching customer email for `reservation_failed` / `confirmed` /
-`payment_failed`; it also handles `UserRegistered` (welcome),
-`DispatchConfirmed`/`DispatchFailed` (shipped / dispatch-failed) and
-`PaymentCaptured`/`PaymentFailed` (receipt / payment-problem). No HTTP write
-API, no customer-facing endpoints — Kafka consumer only, per
+notification-service consumes the per-outcome lifecycle events on
+`order-events` (`OrderConfirmed` / `OrderPaymentFailed` / `OrderCancelled`)
+and sends the matching customer email; it also handles `UserRegistered`
+(welcome), `DispatchConfirmed`/`DispatchFailed` (shipped / dispatch-failed)
+and `PaymentCaptured`/`PaymentFailed` (receipt / payment-problem). The old
+single `OrderStatusChanged` event was split in TD-15 and is retired. No HTTP
+write API, no customer-facing endpoints — Kafka consumer only, per
 `user-stories.md`'s US-7 framing ("New `notification-service`, Kafka consumer
 only, no database").
 
@@ -24,6 +24,10 @@ field-spec applied (`gluon/specs/notification.yaml` doesn't exist — none was
 needed, there's no CRUD domain entity here).
 
 ## Current state
+> Older paragraphs below name `OrderStatusChangedConsumer`; that event and
+> consumer were superseded by the per-outcome `OrderEventsConsumer` in TD-15.
+> The names are kept only as track history.
+
 As of `conductor/tracks/strip-crud_20261002/` (complete), the generated
 Postgres/CRUD scaffold has been removed: `NotificationStore`/
 `NotificationRoutes`/`Migrations`/`NotificationError` are gone, `build.sbt`
@@ -74,25 +78,17 @@ channel (`AsyncApiChannels`, served at `/docs/asyncapi.json`/`/docs/asyncapi`).
 
 ## Domain model
 No domain entity in the CRUD sense — this service has none now that the
-scaffold is stripped (see "Current state" above). The only "model" is the
-consumed event shape — the `OrderStatusChanged` payload, carried inside the
-shared envelope on `order-events`, pinned in `gluon/docs/system-design.md`'s
-"Payload contracts":
-```json
-{
-  "orderId": "string (UUID)",
-  "customerId": "string",
-  "status": "string — one of: reservation_failed | confirmed | payment_failed",
-  "timestamp": "string (ISO-8601 instant)"
-}
-```
+scaffold is stripped (see "Current state" above). The consumed event shapes
+are the per-outcome order events (`OrderConfirmed`, `OrderPaymentFailed`,
+`OrderCancelled`), plus the fulfilment/payment/user events above, all carried
+inside the shared envelope on their domain topics and pinned in
+`gluon/docs/system-design.md`'s "Payload contracts".
 The outbound side (the "email") has no real provider decided yet — per
 PLAN.md Phase 5, stub the send (log line or fake client) rather than
 integrating a real email service.
 
 ## User stories in scope (gluon/docs/user-stories.md)
-- US-7.1 — consume `order.status-changed`, send the matching email per
-  status (`reservation_failed` / `confirmed` / `payment_failed`)
+- US-7.1 — consume the per-outcome order events, send the matching email
 
 ## Sequencing (gluon/PLAN.md)
 - **Phase 5** (depends on Phase 3's `order.status-changed` publish side and
@@ -105,11 +101,11 @@ integrating a real email service.
 
 ## Events
 - Publishes: none
-- Consumes: `order-events` (eventType `OrderStatusChanged`, wrapped in the
-  shared envelope — one topic per domain, ADR 0009, migrated 2026-10-11,
-  kafka-envelope_20261011; previously the dedicated `order.status-changed`
-  topic. Other event types on `order-events`, e.g. `OrderReserved`, are
-  silently skipped), `user-events` (`UserRegistered`, US-16.4),
+- Consumes: `order-events` (`OrderConfirmed`/`OrderPaymentFailed`/
+  `OrderCancelled`, wrapped in the shared envelope — one topic per domain,
+  ADR 0009; `OrderStatusChanged` is retired, TD-15. Other event types on
+  `order-events`, e.g. `OrderReserved`, are silently skipped),
+  `user-events` (`UserRegistered`, US-16.4),
   `fulfilment-events` (`DispatchConfirmed`/`DispatchFailed`, US-17.5/18.4),
   and `payment-events` (`PaymentCaptured`/`PaymentFailed`, US-19.4)
 
