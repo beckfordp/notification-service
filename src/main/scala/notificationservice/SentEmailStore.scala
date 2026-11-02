@@ -127,6 +127,9 @@ trait SentEmailStore[F[_]] {
       customerId: Option[String],
       orderId: Option[String]
   ): F[List[SentEmailRow]]
+
+  /** `true` when Postgres answers; gates `/health/ready` (ADM-6). */
+  def ping: F[Boolean]
 }
 
 object SentEmailStore {
@@ -317,6 +320,9 @@ object SentEmailStore {
       where source_event_id = $text
     """.query(sentEmailRow).map(toSentEmailRow)
 
+  private val pingQuery: skunk.Query[skunk.Void, Int] =
+    sql"SELECT 1".query(int4)
+
   private val listEmails: skunk.Query[
     (Option[String], Option[String], Option[String], Option[String]),
     SentEmailRow
@@ -389,6 +395,9 @@ object SentEmailStore {
           _.prepare(markUnresolvedQuery).flatMap(_.execute((reason, id)))
         )
         .void
+
+    def ping: F[Boolean] =
+      pool.use(_.unique(pingQuery)).attempt.map(_.isRight)
 
     def get(sourceEventId: String): F[Option[SentEmailRow]] =
       pool.use(

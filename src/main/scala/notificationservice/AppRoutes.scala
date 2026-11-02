@@ -39,7 +39,7 @@ object AppRoutes {
       "1.0",
       List(
         HealthRoutes.healthServerEndpoint[F],
-        HealthRoutes.readyServerEndpoint[F],
+        HealthRoutes.readyServerEndpoint[F](emailStore),
         EmailRoutes.serverEndpoint[F](emailStore, telemetry.logger)
       )
     )

@@ -98,6 +98,19 @@ class SentEmailStorePostgresSuite
       }
     }
 
+  withStore("ping is true while Postgres answers") { (store, _) =>
+    store.ping.map(assert(_))
+  }
+
+  test("ping is false when Postgres is unreachable") {
+    SentEmailStore
+      .postgres[IO](
+        PostgresConfig("localhost", 1, "notification", "nobody", "nothing")
+      )
+      .use(_.ping)
+      .map(reachable => assert(!reachable))
+  }
+
   withStore("claim inserts a pending row") { (store, _) =>
     val email = newEmail("event-1")
     for {

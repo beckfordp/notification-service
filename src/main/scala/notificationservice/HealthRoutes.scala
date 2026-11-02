@@ -1,20 +1,19 @@
 package notificationservice
 
-import cats.Applicative
+import cats.{Applicative, Monad}
 import cats.effect.Async
+import cats.syntax.all._
 import org.http4s.HttpRoutes
 import sttp.model.StatusCode
 import sttp.tapir._
 import sttp.tapir.server.ServerEndpoint
 import sttp.tapir.server.http4s.Http4sServerInterpreter
 
-/** `/health/ready` always returns 200, same as `/health` - this service has no
-  * DB/store to gate readiness on, and the one thing that previously drove it
-  * (`OrderStatusChangedConsumer`'s hand-rolled `ready` ref, flipped to `false`
-  * on a stream error with no way back) is gone: `purekafka`'s
-  * `StreamSupervisor` (TD-2.3, ADR 0010) now restarts that stream with backoff
-  * instead of leaving it permanently dead, so there's no "stuck forever" state
-  * left to signal. See `KafkaConsumers.scala`.
+/** `/health/ready` is gated on the sent-email audit store (ADM-2/ADM-6): with
+  * Postgres unreachable no email can be claimed, so the pod must not take
+  * traffic. Kafka consumers are not part of readiness - `purekafka`'s
+  * `StreamSupervisor` (TD-2.3, ADR 0010) restarts them with backoff instead of
+  * leaving them permanently dead. See `KafkaConsumers.scala`.
   */
 object HealthRoutes {
 
@@ -30,23 +29,30 @@ object HealthRoutes {
     endpoint.get
       .in("health" / "ready")
       .out(statusCode(StatusCode.Ok))
+      .errorOut(
+        statusCode(StatusCode.ServiceUnavailable)
+          .description("Postgres is unreachable.")
+      )
       .summary("Readiness check")
       .description(
-        "Always 200 while the process is up: this service has no datastore " +
-          "to gate readiness on, and the Kafka consumers are supervised with " +
-          "restart-with-backoff rather than left permanently dead, so there " +
-          "is no not-ready state to report."
+        "200 when the sent-email audit store (Postgres) is reachable, 503 " +
+          "otherwise. Kafka consumers are supervised with restart-with-" +
+          "backoff, so they do not gate readiness."
       )
       .tag("health")
 
   def healthServerEndpoint[F[_]: Applicative]: ServerEndpoint[Any, F] =
     healthEndpoint.serverLogicSuccess[F](_ => Applicative[F].unit)
 
-  def readyServerEndpoint[F[_]: Applicative]: ServerEndpoint[Any, F] =
-    readyEndpoint.serverLogicSuccess[F](_ => Applicative[F].unit)
+  def readyServerEndpoint[F[_]: Monad](
+      store: SentEmailStore[F]
+  ): ServerEndpoint[Any, F] =
+    readyEndpoint.serverLogic[F] { _ =>
+      store.ping.map(ready => if (ready) Right(()) else Left(()))
+    }
 
-  def routes[F[_]: Async]: HttpRoutes[F] =
+  def routes[F[_]: Async](store: SentEmailStore[F]): HttpRoutes[F] =
     Http4sServerInterpreter[F]().toRoutes(
-      List(healthServerEndpoint[F], readyServerEndpoint[F])
+      List(healthServerEndpoint[F], readyServerEndpoint(store))
     )
 }

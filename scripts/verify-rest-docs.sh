@@ -91,10 +91,9 @@ expected = {
     ("/health/ready", "get"): {
         "summary": "Readiness check",
         "description": (
-            "Always 200 while the process is up: this service has no datastore "
-            "to gate readiness on, and the Kafka consumers are supervised with "
-            "restart-with-backoff rather than left permanently dead, so there "
-            "is no not-ready state to report."
+            "200 when the sent-email audit store (Postgres) is reachable, 503 "
+            "otherwise. Kafka consumers are supervised with restart-with-"
+            "backoff, so they do not gate readiness."
         ),
     },
 }
@@ -112,8 +111,9 @@ for (path, method), want in expected.items():
     check(f"{name} takes no parameters", not op.get("parameters"))
     check(f"{name} has no request body", "requestBody" not in op)
     responses = op.get("responses", {})
-    check(f"{name} lists only 200 (got {sorted(responses)})",
-          set(responses) <= {"200"})
+    allowed = {"200", "503"} if path == "/health/ready" else {"200"}
+    check(f"{name} lists only {sorted(allowed)} (got {sorted(responses)})",
+          set(responses) <= allowed)
     for code, r in responses.items():
         if code.startswith("2"):
             continue

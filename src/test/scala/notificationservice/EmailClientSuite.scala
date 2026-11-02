@@ -326,6 +326,8 @@ class EmailClientSuite extends CatsEffectSuite {
         def get(sourceEventId: String): IO[Option[SentEmailRow]] =
           ref.get.map(_.get(sourceEventId))
 
+        def ping: IO[Boolean] = IO.pure(true)
+
         def list(
             customerId: Option[String],
             orderId: Option[String]

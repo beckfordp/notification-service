@@ -28,13 +28,14 @@ class NotificationDocsSuite extends CatsEffectSuite {
         customerId: Option[String],
         orderId: Option[String]
     ): IO[List[SentEmailRow]] = IO.pure(Nil)
+    def ping: IO[Boolean] = IO.pure(true)
   }
 
   /** The exact endpoints `AppRoutes` passes to `Docs.routes` (TD-20.9). */
   private def endpoints: List[ServerEndpoint[Any, IO]] =
     List(
       HealthRoutes.healthServerEndpoint[IO],
-      HealthRoutes.readyServerEndpoint[IO],
+      HealthRoutes.readyServerEndpoint[IO](store),
       EmailRoutes.serverEndpoint[IO](
         store,
         StructuredTestingLogger.impl[IO]()
