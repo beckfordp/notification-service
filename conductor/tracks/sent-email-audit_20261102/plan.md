@@ -2,9 +2,9 @@
 
 ## Phase 1: Persistence foundation
 
-- [ ] Task: Update `conductor/tech-stack.md` and `conductor/product.md` —
+- [x] Task: Update `conductor/tech-stack.md` and `conductor/product.md` —
   record the reintroduced Postgres/Skunk/Flyway stack and the new read API
-  (workflow principle 2, before code).
+  (workflow principle 2, before code). (8218f8d)
 - [ ] Task: Failing config test for `PostgresConfig` defaults and `POSTGRES_*`
   env overrides; add `PostgresConfig`, the `postgres` block in
   `application.conf`, and config wiring (Red → Green).
