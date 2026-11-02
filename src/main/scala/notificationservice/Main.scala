@@ -24,6 +24,7 @@ object Main extends IOApp.Simple {
         )
       )
     )
+    _ <- Migrations.resource[IO](config.postgres)
     telemetry <- Telemetry.resource[IO](config.serviceName, config.metricsPort)
     _ <- Resource.eval(
       telemetry.logger.info(
@@ -33,7 +34,12 @@ object Main extends IOApp.Simple {
         )
       )("notification-service starting")
     )
-    emailClient = EmailClient.logging[IO](telemetry.logger)
+    emailStore <- SentEmailStore.postgres[IO](config.postgres)
+    emailClient = EmailClient.audited[IO](
+      emailStore,
+      EmailClient.logging[IO](telemetry.logger),
+      telemetry.logger
+    )
     consumersFailed <- KafkaConsumers.resource[IO](
       config.kafka,
       emailClient,
@@ -42,6 +48,7 @@ object Main extends IOApp.Simple {
     )
     routes = AppRoutes.all[IO](
       telemetry,
+      emailStore,
       AsyncApiChannels.channels,
       config.asyncApiHtmlDir
     )

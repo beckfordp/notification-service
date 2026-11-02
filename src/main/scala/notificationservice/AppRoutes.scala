@@ -20,15 +20,17 @@ import purerest.tracing.ServerTracing
   * itself. Mirrors order-service's/payment-service's/inventory-service's own
   * `AppRoutes.scala`.
   *
-  * Unlike those three, there are no business HTTP routes here at all beyond
-  * `/health` and `/health/ready` - this service is a pure Kafka-to-email relay.
-  * Those two are still served through `purerest.docs.Docs.routes` so the TD-20
-  * docs convention (and its coverage test) applies to every served endpoint.
+  * Unlike those three, there are no business HTTP routes here beyond `/health`,
+  * `/health/ready` and ADM-2's read-only `GET /emails` - this service is a
+  * Kafka-to-email relay with an audit read API. All of them are still served
+  * through `purerest.docs.Docs.routes` so the TD-20 docs convention (and its
+  * coverage test) applies to every served endpoint.
   */
 object AppRoutes {
 
   def all[F[_]: Async](
       telemetry: Telemetry[F],
+      emailStore: SentEmailStore[F],
       channels: List[AsyncApiChannel[?]],
       staticAsyncApiDocsDir: String
   ): HttpRoutes[F] = {
@@ -37,7 +39,8 @@ object AppRoutes {
       "1.0",
       List(
         HealthRoutes.healthServerEndpoint[F],
-        HealthRoutes.readyServerEndpoint[F]
+        HealthRoutes.readyServerEndpoint[F],
+        EmailRoutes.serverEndpoint[F](emailStore, telemetry.logger)
       )
     )
     val asyncApiRoutes =
