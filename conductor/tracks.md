@@ -2,9 +2,6 @@
 
 This file tracks all major tracks for the project.
 
-- [x] **Track: ADM-3 — recipient resolution**
-  *Link: [./tracks/recipient-resolution_20261102/](./tracks/recipient-resolution_20261102/)*
-
 ---
 
 ## Backlog
