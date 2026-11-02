@@ -46,11 +46,20 @@ final case class KafkaConfig(
       StreamSupervisorConfig(baseDelay = 1.second, maxDelay = 30.seconds)
 ) derives ConfigReader
 
+final case class PostgresConfig(
+    host: String,
+    port: Int,
+    database: String,
+    user: String,
+    password: String
+) derives ConfigReader
+
 final case class NotificationServiceConfig(
     port: Int,
     metricsPort: Int,
     serviceName: String,
     asyncApiHtmlDir: String,
+    postgres: PostgresConfig,
     kafka: KafkaConfig
 ) derives ConfigReader
 

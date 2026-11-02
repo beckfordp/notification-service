@@ -12,6 +12,13 @@ class NotificationServiceConfigSuite extends CatsEffectSuite {
       |metrics-port = 9090
       |service-name = "notification-service"
       |async-api-html-dir = "target/asyncapi-docs"
+      |postgres {
+      |  host = "localhost"
+      |  port = 5432
+      |  database = "notification"
+      |  user = "notification"
+      |  password = "notification"
+      |}
       |kafka {
       |  bootstrap-servers = "localhost:9092"
       |  dlq-retry {
@@ -46,6 +53,13 @@ class NotificationServiceConfigSuite extends CatsEffectSuite {
           metricsPort = 9090,
           serviceName = "notification-service",
           asyncApiHtmlDir = "target/asyncapi-docs",
+          postgres = PostgresConfig(
+            host = "localhost",
+            port = 5432,
+            database = "notification",
+            user = "notification",
+            password = "notification"
+          ),
           kafka = KafkaConfig(bootstrapServers = "localhost:9092")
         )
       )
@@ -58,11 +72,32 @@ class NotificationServiceConfigSuite extends CatsEffectSuite {
         |port = 8080
         |metrics-port = 9090
         |service-name = "notification-service"
+        |postgres {
+        |  host = "localhost"
+        |  port = 5432
+        |  database = "notification"
+        |  user = "notification"
+        |  password = "notification"
+        |}
         |""".stripMargin
 
     assert(
       ConfigSource
         .string(missingKafka)
+        .load[NotificationServiceConfig]
+        .isLeft
+    )
+  }
+
+  test("fails to load when the postgres password is missing") {
+    val missingPassword = validHocon.replace(
+      "  password = \"notification\"\n",
+      ""
+    )
+
+    assert(
+      ConfigSource
+        .string(missingPassword)
         .load[NotificationServiceConfig]
         .isLeft
     )
@@ -74,6 +109,16 @@ class NotificationServiceConfigSuite extends CatsEffectSuite {
       assertEquals(config.metricsPort, 9090)
       assertEquals(config.serviceName, "notification-service")
       assertEquals(config.asyncApiHtmlDir, "target/asyncapi-docs")
+      assertEquals(
+        config.postgres,
+        PostgresConfig(
+          host = "localhost",
+          port = 5432,
+          database = "notification",
+          user = "notification",
+          password = "notification"
+        )
+      )
       assertEquals(
         config.kafka,
         KafkaConfig(bootstrapServers = "localhost:9092")
