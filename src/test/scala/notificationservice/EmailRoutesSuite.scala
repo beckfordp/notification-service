@@ -7,7 +7,6 @@ import io.circe.parser.decode
 import munit.CatsEffectSuite
 import org.http4s.Method.GET
 import org.http4s.{Request, Status, Uri}
-import org.http4s.implicits._
 import org.testcontainers.utility.DockerImageName
 import org.typelevel.log4cats.testing.StructuredTestingLogger
 import sttp.tapir.server.http4s.Http4sServerInterpreter
@@ -132,8 +131,11 @@ class EmailRoutesSuite extends CatsEffectSuite with TestContainerForAll {
         unknown <- get(routes, "/emails?customerId=nobody")
       } yield {
         def ids(body: String): List[String] =
-          decode[List[SentEmailResponse]](body).toOption.get
-            .map(_.sourceEventId)
+          decode[List[SentEmailResponse]](body) match {
+            case Right(rows) => rows.map(_.sourceEventId)
+            case Left(error) =>
+              fail(s"invalid /emails JSON: ${error.getMessage}")
+          }
         assertEquals(ids(byCustomer._2).sorted, List("e1", "e2"))
         assertEquals(ids(byOrder._2).sorted, List("e1", "e3"))
         assertEquals(ids(both._2), List("e1"))

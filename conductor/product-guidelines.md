@@ -8,30 +8,30 @@ restate those — keep following them as the service grows, even once it's
 reshaped from generated CRUD scaffold into a Kafka-only consumer.
 
 ## API design conventions
-This service has **no CRUD HTTP API** once stripped (see
-`conductor/product.md`'s warning) — it's a Kafka consumer only, so most of
-order-service's REST conventions (pluralized paths, PATCH vs PUT,
-one-db-per-service) don't apply here:
-- No Postgres, no Flyway, no skunk — no database at all, once the generated
-  scaffold is stripped down per `gluon/backlogs/notification-service.md`'s
-  first line
-- Health endpoints stay (`GET /health`, `GET /health/ready`) — same
-  generator convention as every other Gluon service, `readiness` adjusted
-  to check Kafka consumer connectivity instead of a DB ping once the store
-  is removed
+This service has **no CRUD or write HTTP API** — it is a Kafka consumer with a
+read-only audit surface:
+- Postgres + Skunk + Flyway are back for the `sent_email` audit store (ADM-2),
+  **not** a CRUD domain. One dedicated database per service remains the rule;
+  no service reads or writes another's database.
+- Health endpoints stay (`GET /health`, `GET /health/ready`) — same generator
+  convention as every other Gluon service. Readiness is still unconditional
+  `200`; DB/readiness gating is ADM-6.
+- The read API is `GET /emails?customerId=&orderId=` (ADM-2): newest first,
+  both filters optional and ANDed, no auth (local/demo read API), served via
+  tapir and documented like every other route.
 - Errors: domain errors stay an explicit ADT per `development-guidelines.md`
-  (e.g. an unrecognized `status` value on a consumed event), even with no
-  HTTP edge to map them to — log them loudly rather than silently dropping,
-  same reliability stance `system-design.md` already applies to the
-  producer side (order-service/payment-service's publishers)
+  (e.g. an unrecognized `status` value on a consumed event), even with no HTTP
+  write edge to map them to — log them loudly rather than silently dropping,
+  same reliability stance `system-design.md` already applies to the producer
+  side (order-service/payment-service's publishers)
 - Swagger/OpenAPI docs (`purerest.docs.Docs`) cover every served route,
-  including the two health endpoints (`/docs` + `/docs/docs.yaml`, TD-20.9).
-  Still no CRUD API or DTO surface to document
+  including `/health`, `/health/ready` and `/emails` (`/docs` +
+  `/docs/docs.yaml`, TD-20.9). Still no CRUD API or write-DTO surface to
+  document.
 
 ## Testing
 - scalafmt + munit + munit-cats-effect
-- Testcontainers Kafka module for the consumer (publish synthetic
-  `order.status-changed` events, assert the stubbed send is invoked with
-  the right content) — no Testcontainers Postgres needed once the CRUD
-  layer is gone
+- Testcontainers Kafka for the consumers (publish synthetic events, assert
+  the stubbed send is invoked with the right content) and Testcontainers
+  Postgres for the ADM-2 migration, store and `/emails` route suites
 - `sbt scalafmtCheck test` before every commit (CI enforces the same)

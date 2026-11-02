@@ -1,6 +1,6 @@
 package notificationservice
 
-import cats.effect.Async
+import cats.Applicative
 import cats.syntax.all._
 import io.circe.Codec
 import io.circe.generic.semiauto.deriveCodec
@@ -125,7 +125,7 @@ object EmailRoutes {
       )
       .tag(tag)
 
-  def serverEndpoint[F[_]: Async](
+  def serverEndpoint[F[_]: Applicative](
       store: SentEmailStore[F],
       logger: StructuredLogger[F]
   ): ServerEndpoint[Any, F] =

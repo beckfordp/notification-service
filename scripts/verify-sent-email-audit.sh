@@ -26,10 +26,10 @@ SBT_PID=""
 
 cleanup() {
   if [ -n "$SBT_PID" ]; then
+    pkill -P "$SBT_PID" 2>/dev/null || true
     kill "$SBT_PID" 2>/dev/null || true
     wait "$SBT_PID" 2>/dev/null || true
   fi
-  pkill -f 'notificationservice.Main' 2>/dev/null || true
   docker rm -f "$PG_CONTAINER" "$KAFKA_CONTAINER" >/dev/null 2>&1 || true
   rm -f "$SERVICE_LOG"
 }

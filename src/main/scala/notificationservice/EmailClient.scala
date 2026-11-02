@@ -1,6 +1,6 @@
 package notificationservice
 
-import cats.MonadThrow
+import cats.effect.Sync
 import cats.syntax.all._
 import org.typelevel.log4cats.StructuredLogger
 
@@ -72,39 +72,39 @@ object EmailClient {
     * and eventually dead-letters). A duplicate whose row is already `sent` is
     * logged and not sent again; `pending`/`failed` rows are retried.
     */
-  def audited[F[_]: MonadThrow](
+  def audited[F[_]: Sync](
       store: SentEmailStore[F],
       transport: EmailClient[F],
       logger: StructuredLogger[F]
   ): EmailClient[F] =
     new EmailClient[F] {
-      def send(message: EmailMessage): F[Unit] = {
-        val id = UUID.randomUUID()
-        store.claim(message.toNewSentEmail(id)).flatMap {
-          case EmailClaim.Duplicate =>
-            logger.info(
-              Map(
-                "source_event_id" -> message.sourceEventId,
-                "event_type" -> message.eventType
-              )
-            )("Duplicate event - email already sent; skipping")
-          case EmailClaim.Send(rowId) =>
-            transport.send(message).attempt.flatMap {
-              case Right(_) =>
-                store.markSent(rowId) *>
-                  logger.info(
-                    Map(
-                      "email_id" -> rowId.toString,
-                      "source_event_id" -> message.sourceEventId
-                    )
-                  )(s"Recorded sent email (id=$rowId)")
-              case Left(error) =>
-                val detail =
-                  Option(error.getMessage).getOrElse(error.getClass.getName)
-                store.markFailed(rowId, detail) *>
-                  MonadThrow[F].raiseError[Unit](error)
-            }
+      def send(message: EmailMessage): F[Unit] =
+        Sync[F].delay(UUID.randomUUID()).flatMap { id =>
+          store.claim(message.toNewSentEmail(id)).flatMap {
+            case EmailClaim.Duplicate =>
+              logger.info(
+                Map(
+                  "source_event_id" -> message.sourceEventId,
+                  "event_type" -> message.eventType
+                )
+              )("Duplicate event - email already sent; skipping")
+            case EmailClaim.Send(rowId) =>
+              transport.send(message).attempt.flatMap {
+                case Right(_) =>
+                  store.markSent(rowId) *>
+                    logger.info(
+                      Map(
+                        "email_id" -> rowId.toString,
+                        "source_event_id" -> message.sourceEventId
+                      )
+                    )(s"Recorded sent email (id=$rowId)")
+                case Left(error) =>
+                  val detail =
+                    Option(error.getMessage).getOrElse(error.getClass.getName)
+                  store.markFailed(rowId, detail) *>
+                    Sync[F].raiseError[Unit](error)
+              }
+          }
         }
-      }
     }
 }
