@@ -19,13 +19,14 @@
 
 ## Phase 2: Sent-email store
 
-- [ ] Task: Failing `SentEmailStorePostgresSuite`: insert-pending; duplicate
+- [x] Task: Failing `SentEmailStorePostgresSuite`: insert-pending; duplicate
   `source_event_id` on `sent`; retry on `pending`/`failed`; mark-sent and
   mark-failed transitions; filters by customerId, orderId, both, neither;
-  newest-first ordering (Red).
-- [ ] Task: Implement `SentEmail` / `SentEmailStore` with Skunk (Green).
-- [ ] Task: Conductor - User Manual Verification 'Sent-email store'
-  (Protocol in workflow.md)
+  newest-first ordering (Red). Implement `SentEmail` / `SentEmailStore` with
+  Skunk (Green). (48b56d3)
+- [x] Task: Conductor - User Manual Verification 'Sent-email store'
+  (Protocol in workflow.md) — prompting off: verified by the committed
+  `SentEmailStorePostgresSuite` (7 tests, green).
 
 ## Phase 3: Envelope eventId and audited EmailClient
 
