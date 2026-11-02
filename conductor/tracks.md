@@ -2,7 +2,7 @@
 
 This file tracks all major tracks for the project.
 
-- [~] **Track: ADM-2 — sent-email audit (Postgres + Flyway, GET /emails)**
+- [x] **Track: ADM-2 — sent-email audit (Postgres + Flyway, GET /emails)**
   *Link: [./tracks/sent-email-audit_20261102/](./tracks/sent-email-audit_20261102/)*
 
 ---
