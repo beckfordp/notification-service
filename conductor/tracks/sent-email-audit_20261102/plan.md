@@ -30,19 +30,23 @@
 
 ## Phase 3: Envelope eventId and audited EmailClient
 
-- [ ] Task: Failing `EnvelopeHandlerSuite` / consumer tests asserting the
+- [x] Task: Failing `EnvelopeHandlerSuite` / consumer tests asserting the
   envelope `eventId` reaches each route handler (Red); change
   `EnvelopeRoute.run` / `EnvelopeHandler` to pass it and update all four
-  consumers (Green).
-- [ ] Task: Failing `EmailClientSuite` with a fake store and transport:
+  consumers (Green). (890e816)
+- [x] Task: Failing `EmailClientSuite` with a fake store and transport:
   pending → sent; transport error → failed + rethrow; duplicate `sent` →
   transport not called (Red). Implement `EmailMessage`, the auditing
   `EmailClient`, and keep `EmailClient.logging` as the transport (Green).
-- [ ] Task: Failing handler tests for all event types asserting event id,
+  (890e816)
+- [x] Task: Failing handler tests for all event types asserting event id,
   `recipient_type`/`recipient_key`, `customer_id`/`order_id` and `reason`
   mapping (Red); wire each consumer's send to the audited client (Green).
-- [ ] Task: Conductor - User Manual Verification 'Envelope eventId and audited
-  EmailClient' (Protocol in workflow.md)
+  (890e816)
+- [x] Task: Conductor - User Manual Verification 'Envelope eventId and audited
+  EmailClient' (Protocol in workflow.md) — prompting off: verified by
+  `EnvelopeHandlerSuite`, `EmailClientSuite`, `SentEmailMappingSuite` and
+  `ConsumerHandlersSuite` (27 tests, green).
 
 ## Phase 4: Read API and wiring
 
