@@ -64,13 +64,17 @@
 
 ## Phase 5: Verification
 
-- [ ] Task: `sbt scalafmtCheck test`; run `sbt schemaRegistryCheck` to confirm
-  no Kafka-contract drift; confirm >80% coverage on new code.
-- [ ] Task: Live check: start a throwaway Postgres, run the service, publish one
+- [x] Task: `sbt scalafmtCheck test`; run `sbt schemaRegistryCheck` to confirm
+  no Kafka-contract drift; confirm >80% coverage on new code. — all green:
+  84 passed (6 pre-existing ignored), statement coverage 84.71%, branch
+  86.67%, `schemaRegistryCheck` green.
+- [x] Task: Live check: start a throwaway Postgres, run the service, publish one
   synthetic event per topic and confirm the rows and `GET /emails` filters;
-  record the results.
-- [ ] Task: Conductor - User Manual Verification 'Verification'
-  (Protocol in workflow.md)
+  record the results. — committed as `scripts/verify-sent-email-audit.sh`
+  and run green (four rows: customer/order/email recipients, both filters).
+- [x] Task: Conductor - User Manual Verification 'Verification'
+  (Protocol in workflow.md) — prompting off: covered by the committed live
+  verification script above.
 
 ## Review
 
