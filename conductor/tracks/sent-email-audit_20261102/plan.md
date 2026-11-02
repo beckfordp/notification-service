@@ -5,9 +5,9 @@
 - [x] Task: Update `conductor/tech-stack.md` and `conductor/product.md` —
   record the reintroduced Postgres/Skunk/Flyway stack and the new read API
   (workflow principle 2, before code). (8218f8d)
-- [ ] Task: Failing config test for `PostgresConfig` defaults and `POSTGRES_*`
+- [x] Task: Failing config test for `PostgresConfig` defaults and `POSTGRES_*`
   env overrides; add `PostgresConfig`, the `postgres` block in
-  `application.conf`, and config wiring (Red → Green).
+  `application.conf`, and config wiring (Red → Green). (d8edda4)
 - [ ] Task: Failing `MigrationsSuite` (Testcontainers Postgres) asserting
   `sent_email` columns, check constraints and indexes; add Skunk, Flyway
   (core + postgresql), pgjdbc, Testcontainers-Postgres and the otel4s
