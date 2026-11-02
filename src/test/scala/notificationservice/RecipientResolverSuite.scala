@@ -30,11 +30,11 @@ class RecipientResolverSuite extends CatsEffectSuite {
     }
 
   private def ordersWith(
-      customerId: String => IO[Option[String]]
+      contact: String => IO[Option[OrderContact]]
   ): OrderClient[IO] =
     new OrderClient[IO] {
-      def getCustomerId(orderId: String): IO[Option[String]] =
-        customerId(orderId)
+      def getContact(orderId: String): IO[Option[OrderContact]] =
+        contact(orderId)
     }
 
   private val userMustNotBeCalled = usersWith(_ =>
@@ -99,7 +99,7 @@ class RecipientResolverSuite extends CatsEffectSuite {
     for {
       result <- RecipientResolver[IO](
         usersWith(_ => IO.pure(Some("ada@example.com"))),
-        ordersWith(_ => IO.pure(Some("c1")))
+        ordersWith(_ => IO.pure(Some(OrderContact("c1", None))))
       ).resolve(original)
     } yield assertEquals(
       result,
@@ -135,6 +135,78 @@ class RecipientResolverSuite extends CatsEffectSuite {
     } yield assertEquals(
       result,
       RecipientResolution.Unresolved(original, "unknown_customer:c1")
+    )
+  }
+
+  test("an order event for a guest falls back to the order's email (ADM-10)") {
+    val original = message(customerId = Some("guest-1"), orderId = Some("o1"))
+    for {
+      result <- RecipientResolver[IO](
+        usersWith(_ => IO.pure(None)),
+        ordersWith(_ =>
+          IO.pure(Some(OrderContact("guest-1", Some("guest@example.com"))))
+        )
+      ).resolve(original)
+    } yield assertEquals(
+      result,
+      RecipientResolution.Resolved(
+        original.copy(recipientEmail = Some("guest@example.com"))
+      )
+    )
+  }
+
+  test("an orderId-only guest event reuses the one order lookup (ADM-10)") {
+    val original = message(orderId = Some("o1"))
+    for {
+      lookups <- cats.effect.Ref.of[IO, Int](0)
+      result <- RecipientResolver[IO](
+        usersWith(_ => IO.pure(None)),
+        ordersWith(_ =>
+          lookups
+            .update(_ + 1)
+            .as(Some(OrderContact("guest-1", Some("guest@example.com"))))
+        )
+      ).resolve(original)
+      count <- lookups.get
+    } yield {
+      assertEquals(
+        result,
+        RecipientResolution.Resolved(
+          original.copy(
+            customerId = Some("guest-1"),
+            recipientEmail = Some("guest@example.com")
+          )
+        )
+      )
+      assertEquals(count, 1)
+    }
+  }
+
+  test("a guest order without an email stays terminal unresolved") {
+    val original = message(customerId = Some("guest-1"), orderId = Some("o1"))
+    for {
+      result <- RecipientResolver[IO](
+        usersWith(_ => IO.pure(None)),
+        ordersWith(_ => IO.pure(Some(OrderContact("guest-1", None))))
+      ).resolve(original)
+    } yield assertEquals(
+      result,
+      RecipientResolution.Unresolved(original, "unknown_customer:guest-1")
+    )
+  }
+
+  test("a signed-in customer never triggers the guest order lookup") {
+    val original = message(customerId = Some("c1"), orderId = Some("o1"))
+    for {
+      result <- RecipientResolver[IO](
+        usersWith(_ => IO.pure(Some("ada@example.com"))),
+        orderMustNotBeCalled
+      ).resolve(original)
+    } yield assertEquals(
+      result,
+      RecipientResolution.Resolved(
+        original.copy(recipientEmail = Some("ada@example.com"))
+      )
     )
   }
 

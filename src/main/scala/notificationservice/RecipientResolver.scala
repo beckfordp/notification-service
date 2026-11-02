@@ -23,7 +23,9 @@ object RecipientResolution {
   *   - an already-known address (`UserRegistered`) is used as-is;
   *   - `customerId` → user-service `GET /users/{id}`;
   *   - `orderId` only (payment/fulfilment) → order-service `GET /orders/{id}`,
-  *     then the user lookup.
+  *     then the user lookup;
+  *   - a customerId with no account (guest checkout) → the order's `guestEmail`
+  *     (ADM-10), when the event has an orderId.
   */
 trait RecipientResolver[F[_]] {
   def resolve(message: EmailMessage): F[RecipientResolution]
@@ -54,25 +56,47 @@ object RecipientResolver {
               )
             )
           case None =>
-            customerIdFor(message).flatMap {
+            customerFor(message).flatMap {
               case Left(reason) =>
                 Monad[F].pure(RecipientResolution.Unresolved(message, reason))
-              case Right((customerId, withCustomer)) =>
-                users.getEmail(customerId).map {
+              case Right((customerId, contact)) =>
+                val withCustomer = message.copy(customerId = Some(customerId))
+                users.getEmail(customerId).flatMap {
                   case Some(email) =>
-                    RecipientResolution.Resolved(
-                      withCustomer.copy(
-                        customerId = Some(customerId),
-                        recipientEmail = Some(email)
-                      )
-                    )
+                    Monad[F].pure(resolved(withCustomer, email))
                   case None =>
-                    RecipientResolution.Unresolved(
-                      withCustomer.copy(customerId = Some(customerId)),
-                      s"unknown_customer:$customerId"
-                    )
+                    guestEmail(message, contact).map {
+                      case Some(email) => resolved(withCustomer, email)
+                      case None        =>
+                        RecipientResolution.Unresolved(
+                          withCustomer,
+                          s"unknown_customer:$customerId"
+                        )
+                    }
                 }
             }
+        }
+
+      private def resolved(
+          message: EmailMessage,
+          email: String
+      ): RecipientResolution =
+        RecipientResolution.Resolved(message.copy(recipientEmail = Some(email)))
+
+      /** ADM-10: a customerId with no account is a guest checkout; the order
+        * carries the address captured at checkout. Reuses the contact already
+        * fetched for an orderId-only event.
+        */
+      private def guestEmail(
+          message: EmailMessage,
+          contact: Option[OrderContact]
+      ): F[Option[String]] =
+        contact match {
+          case Some(known) => Monad[F].pure(known.guestEmail)
+          case None        =>
+            message.orderId.flatTraverse(orderId =>
+              orders.getContact(orderId).map(_.flatMap(_.guestEmail))
+            )
         }
 
       /** The address the message already carries: the resolved field, or the
@@ -87,22 +111,23 @@ object RecipientResolver {
         )
 
       /** The customer id, one order lookup away when the event carries only an
-        * orderId.
+        * orderId (that lookup's contact is kept for the guest fallback).
         */
-      private def customerIdFor(
+      private def customerFor(
           message: EmailMessage
-      ): F[Either[String, (String, EmailMessage)]] =
+      ): F[Either[String, (String, Option[OrderContact])]] =
         message.customerId match {
           case Some(customerId) =>
-            Monad[F].pure(Right((customerId, message)))
+            Monad[F].pure(Right((customerId, None)))
           case None =>
             message.orderId match {
               case None =>
                 Monad[F].pure(Left("no_customer_identity"))
               case Some(orderId) =>
-                orders.getCustomerId(orderId).map {
-                  case Some(customerId) => Right((customerId, message))
-                  case None             => Left(s"unknown_order:$orderId")
+                orders.getContact(orderId).map {
+                  case Some(contact) =>
+                    Right((contact.customerId, Some(contact)))
+                  case None => Left(s"unknown_order:$orderId")
                 }
             }
         }

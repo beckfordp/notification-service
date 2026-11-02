@@ -21,7 +21,7 @@ class OrderClientSuite extends CatsEffectSuite {
       "customerId" -> io.circe.Json.fromString("cust-1")
     )
 
-  test("getCustomerId returns the id and targets GET /orders/{id}") {
+  test("getContact returns the id and targets GET /orders/{id}") {
     for {
       seen <- Ref.of[IO, List[String]](Nil)
       stub = Client[IO] { req =>
@@ -31,36 +31,53 @@ class OrderClientSuite extends CatsEffectSuite {
             .as(Response[IO](Status.Ok).withEntity(orderJson))
         )
       }
-      result <- OrderClient[IO](stub, baseUri).getCustomerId("order-1")
+      result <- OrderClient[IO](stub, baseUri).getContact("order-1")
       paths <- seen.get
     } yield {
-      assertEquals(result, Some("cust-1"))
+      assertEquals(result, Some(OrderContact("cust-1", None)))
       assertEquals(paths, List("/orders/order-1"))
     }
   }
 
-  test("getCustomerId returns None for 404 and 400") {
+  test("getContact carries a guest order's email (ADM-10)") {
+    val guestJson = orderJson.deepMerge(
+      io.circe.Json.obj(
+        "guestEmail" -> io.circe.Json.fromString("guest@example.com")
+      )
+    )
+    for {
+      result <- OrderClient[IO](
+        stubClient(_ => Response[IO](Status.Ok).withEntity(guestJson)),
+        baseUri
+      ).getContact("order-1")
+    } yield assertEquals(
+      result,
+      Some(OrderContact("cust-1", Some("guest@example.com")))
+    )
+  }
+
+  test("getContact returns None for 404 and 400") {
     for {
       notFound <- OrderClient[IO](
         stubClient(_ => Response[IO](Status.NotFound)),
         baseUri
-      ).getCustomerId("order-1")
+      ).getContact("order-1")
       malformed <- OrderClient[IO](
         stubClient(_ => Response[IO](Status.BadRequest)),
         baseUri
-      ).getCustomerId("not-a-uuid")
+      ).getContact("not-a-uuid")
     } yield {
       assertEquals(notFound, None)
       assertEquals(malformed, None)
     }
   }
 
-  test("getCustomerId raises on an unexpected status") {
+  test("getContact raises on an unexpected status") {
     for {
       result <- OrderClient[IO](
         stubClient(_ => Response[IO](Status.InternalServerError)),
         baseUri
-      ).getCustomerId("order-1").attempt
+      ).getContact("order-1").attempt
     } yield assert(result.isLeft)
   }
 }

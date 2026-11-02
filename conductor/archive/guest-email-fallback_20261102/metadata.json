@@ -1,0 +1,8 @@
+{
+  "track_id": "guest-email-fallback_20261102",
+  "type": "feature",
+  "status": "completed",
+  "created_at": "2026-11-02T17:45:00Z",
+  "updated_at": "2026-11-02T18:05:00Z",
+  "description": "ADM-10: fall back to the order's guest email when the customer has no account"
+}
