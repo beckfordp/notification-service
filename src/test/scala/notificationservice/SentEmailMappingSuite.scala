@@ -30,8 +30,8 @@ class SentEmailMappingSuite extends CatsEffectSuite {
     Ref.of[IO, List[EmailMessage]](Nil).map { ref =>
       (
         new EmailClient[IO] {
-          def send(message: EmailMessage): IO[Unit] =
-            ref.update(_ :+ message)
+          def send(message: EmailMessage): IO[EmailSendOutcome] =
+            ref.update(_ :+ message).map(_ => EmailSendOutcome.Sent)
         },
         ref
       )

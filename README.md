@@ -121,9 +121,11 @@ suites cover the same logic without a broker.
 
 ## Calling other services with resilience
 
-This service doesn't call any other service out of the box, so purerest's retry + circuit-breaker
-middleware (`purerest.resilience.Resilience.middleware`) isn't wired into `Main`. When you adapt
-it to call a real downstream service, wrap its http4s `Client[F]` with `Resilience.middleware`
-before building your own client on top of it — see
-[`ClientResilienceExampleSuite`](./src/test/scala/notificationservice/examples/ClientResilienceExampleSuite.scala)
-for the pattern, tested against a dummy client so it stays correct as purerest evolves.
+Recipient resolution (ADM-3/ADR 0025) calls two services synchronously: `UserClient`
+(user-service `GET /users/{id}`) and `OrderClient` (order-service `GET /orders/{id}`).
+`Main` builds one shared Ember client, wraps it with
+`purerest.resilience.Resilience.middleware` (retry + circuit breaker) and a 5-second
+request timeout, then constructs the two typed clients. `USER_SERVICE_URL` and
+`ORDER_SERVICE_URL` override the local defaults; the k8s values point at the in-cluster
+services. `ClientResilienceExampleSuite` still demonstrates the generic pattern against a
+dummy client.

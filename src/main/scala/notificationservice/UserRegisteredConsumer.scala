@@ -65,21 +65,27 @@ object UserRegisteredConsumer {
       event: UserRegisteredEvent
   ): F[Unit] = {
     val (subject, body) = emailFor(event)
-    emailClient.send(
-      EmailMessage(
-        sourceEventId = eventId,
-        eventType = eventType,
-        reason = None,
-        recipientType = RecipientType.Email,
-        recipientKey = event.email,
-        customerId = Some(event.userId),
-        orderId = None,
-        subject = subject,
-        body = body
+    emailClient
+      .send(
+        EmailMessage(
+          sourceEventId = eventId,
+          eventType = eventType,
+          reason = None,
+          recipientType = RecipientType.Email,
+          recipientKey = event.email,
+          customerId = Some(event.userId),
+          orderId = None,
+          subject = subject,
+          body = body,
+          recipientEmail = Some(event.email)
+        )
       )
-    ) *>
-      logger.info(Map("user_id" -> event.userId))(
-        s"Sent UserRegistered welcome email (user_id=${event.userId})"
+      .flatMap(
+        EmailSendLog.log(
+          logger,
+          Map("user_id" -> event.userId, "event_type" -> eventType),
+          eventType
+        )
       )
   }
 

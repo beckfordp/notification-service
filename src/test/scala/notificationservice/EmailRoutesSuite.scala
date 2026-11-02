@@ -43,6 +43,7 @@ class EmailRoutesSuite extends CatsEffectSuite with TestContainerForAll {
         if (customerId.isDefined) RecipientType.Customer
         else RecipientType.Order,
       recipientKey = customerId.orElse(orderId).getOrElse("x"),
+      recipientEmail = None,
       customerId = customerId,
       orderId = orderId,
       subject = s"subject-$eventId",
@@ -92,10 +93,16 @@ class EmailRoutesSuite extends CatsEffectSuite with TestContainerForAll {
     withRoutes { (routes, store) =>
       for {
         first <- store.claim(email("e1", Some("ada"), Some("o1")))
-        _ <- store.markSent(first match {
+        firstId = first match {
           case EmailClaim.Send(id)  => id
           case EmailClaim.Duplicate => fail("first claim must insert")
-        })
+        }
+        _ <- store.markResolved(
+          firstId,
+          Some("ada"),
+          Some("ada@example.com")
+        )
+        _ <- store.markSent(firstId)
         _ <- store.claim(email("e2", Some("grace"), Some("o2")))
         response <- get(routes, "/emails")
         decoded <- IO.fromEither(
@@ -108,6 +115,7 @@ class EmailRoutesSuite extends CatsEffectSuite with TestContainerForAll {
         assertEquals(sent.eventType, "OrderConfirmed")
         assertEquals(sent.recipientType, "customer")
         assertEquals(sent.recipientKey, "ada")
+        assertEquals(sent.recipientEmail, Some("ada@example.com"))
         assertEquals(sent.customerId, Some("ada"))
         assertEquals(sent.orderId, Some("o1"))
         assertEquals(sent.status, "sent")

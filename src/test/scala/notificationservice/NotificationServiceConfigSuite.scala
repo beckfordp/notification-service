@@ -2,7 +2,11 @@ package notificationservice
 
 import cats.effect.IO
 import munit.CatsEffectSuite
+import org.http4s.Uri
 import pureconfig.ConfigSource
+import purerest.resilience.{CircuitBreakerConfig, ResilienceConfig, RetryConfig}
+
+import scala.concurrent.duration._
 
 class NotificationServiceConfigSuite extends CatsEffectSuite {
 
@@ -40,7 +44,39 @@ class NotificationServiceConfigSuite extends CatsEffectSuite {
       |    max-delay = 30s
       |  }
       |}
+      |user-client {
+      |  base-url = "http://localhost:8084"
+      |  resilience {
+      |    retry {
+      |      max-retries = 3
+      |      base-delay = 100ms
+      |    }
+      |    circuit-breaker {
+      |      failure-threshold = 5
+      |      reset-timeout = 30s
+      |    }
+      |  }
+      |}
+      |order-client {
+      |  base-url = "http://localhost:8083"
+      |  resilience {
+      |    retry {
+      |      max-retries = 3
+      |      base-delay = 100ms
+      |    }
+      |    circuit-breaker {
+      |      failure-threshold = 5
+      |      reset-timeout = 30s
+      |    }
+      |  }
+      |}
       |""".stripMargin
+
+  private val expectedResilience = ResilienceConfig(
+    retry = RetryConfig(maxRetries = 3, baseDelay = 100.millis),
+    circuitBreaker =
+      CircuitBreakerConfig(failureThreshold = 5, resetTimeout = 30.seconds)
+  )
 
   test("loads a fully-specified config, with a kafka block") {
     val result =
@@ -60,7 +96,15 @@ class NotificationServiceConfigSuite extends CatsEffectSuite {
             user = "notification",
             password = "notification"
           ),
-          kafka = KafkaConfig(bootstrapServers = "localhost:9092")
+          kafka = KafkaConfig(bootstrapServers = "localhost:9092"),
+          userClient = UserClientConfig(
+            Uri.unsafeFromString("http://localhost:8084"),
+            expectedResilience
+          ),
+          orderClient = OrderClientConfig(
+            Uri.unsafeFromString("http://localhost:8083"),
+            expectedResilience
+          )
         )
       )
     )
@@ -122,6 +166,14 @@ class NotificationServiceConfigSuite extends CatsEffectSuite {
       assertEquals(
         config.kafka,
         KafkaConfig(bootstrapServers = "localhost:9092")
+      )
+      assertEquals(
+        config.userClient.baseUrl,
+        Uri.unsafeFromString("http://localhost:8084")
+      )
+      assertEquals(
+        config.orderClient.baseUrl,
+        Uri.unsafeFromString("http://localhost:8083")
       )
     }
   }

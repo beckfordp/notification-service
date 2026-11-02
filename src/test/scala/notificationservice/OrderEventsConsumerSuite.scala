@@ -52,10 +52,12 @@ class OrderEventsConsumerSuite
 
   private def fakeEmailClient(ref: Ref[IO, List[SentEmail]]): EmailClient[IO] =
     new EmailClient[IO] {
-      def send(message: EmailMessage): IO[Unit] =
-        ref.update(
-          _ :+ SentEmail(message.recipientKey, message.subject, message.body)
-        )
+      def send(message: EmailMessage): IO[EmailSendOutcome] =
+        ref
+          .update(
+            _ :+ SentEmail(message.recipientKey, message.subject, message.body)
+          )
+          .map(_ => EmailSendOutcome.Sent)
     }
 
   private def awaitEmails(

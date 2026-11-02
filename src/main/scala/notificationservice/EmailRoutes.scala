@@ -28,8 +28,14 @@ final case class SentEmailResponse(
     reason: Option[String],
     @description("Recipient discriminator: customer, email or order.")
     recipientType: String,
-    @description("Recipient identity: customerId, email address or orderId.")
+    @description(
+      "Event identity: customerId, email address or orderId. Provenance, not necessarily the destination."
+    )
     recipientKey: String,
+    @description(
+      "Resolved destination email address, when known (ADM-3). Null for unresolved or legacy rows."
+    )
+    recipientEmail: Option[String],
     @description("Customer the email is attributed to, when known.")
     customerId: Option[String],
     @description("Order the email concerns, when the event carries one.")
@@ -38,7 +44,9 @@ final case class SentEmailResponse(
     subject: String,
     @description("Email body.")
     body: String,
-    @description("Send state: pending, sent or failed.")
+    @description(
+      "Send state: pending, sent, failed (retryable) or unresolved (no address found - terminal)."
+    )
     status: String,
     @description("When the send was attempted.")
     createdAt: Instant,
@@ -61,6 +69,7 @@ object SentEmailResponse {
       reason = row.reason,
       recipientType = row.recipientType.asString,
       recipientKey = row.recipientKey,
+      recipientEmail = row.recipientEmail,
       customerId = row.customerId,
       orderId = row.orderId,
       subject = row.subject,
@@ -88,6 +97,7 @@ object EmailRoutes {
       reason = None,
       recipientType = "customer",
       recipientKey = "7c9e6679-7425-40de-944b-e07fc1f90ae7",
+      recipientEmail = Some("ada@example.com"),
       customerId = Some("7c9e6679-7425-40de-944b-e07fc1f90ae7"),
       orderId = Some("3f2b8c1e-5d4a-4e7b-9c6f-1a2b3c4d5e6f"),
       subject = "Your order is confirmed",

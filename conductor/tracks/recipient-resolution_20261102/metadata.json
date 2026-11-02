@@ -1,0 +1,8 @@
+{
+  "track_id": "recipient-resolution_20261102",
+  "type": "feature",
+  "status": "new",
+  "created_at": "2026-11-02T15:12:00Z",
+  "updated_at": "2026-11-02T15:12:00Z",
+  "description": "ADM-3: resolve email recipients via order-service + user-service, record recipient_email, terminal unresolved (ADR 0025)"
+}

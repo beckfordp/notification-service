@@ -6,10 +6,13 @@
 
 ## Effects / HTTP
 - Cats Effect 3.7.0
-- http4s 0.23.37 (ember-server, http4s-dsl, http4s-circe) — backs the two
-  health-check routes only (the CRUD routes were removed in
-  `conductor/tracks/strip-crud_20261002/`)
+- http4s 0.23.37 (ember-server, ember-client, http4s-dsl, http4s-circe) —
+  ember-server backs the health/emails routes (the CRUD routes were removed in
+  `conductor/tracks/strip-crud_20261002/`); ember-client backs the two
+  outbound recipient-resolution lookups (`UserClient`, `OrderClient`, ADM-3)
 - circe 0.14.16 (circe-generic, circe-parser)
+- purerest resilience (`Resilience.middleware`: retry + circuit breaker) now
+  wraps the two ADM-3 outbound clients; `purerestlib` 0.7.3
 - CORS — `org.http4s.server.middleware.CORS` (ships in `http4s-server`, no new
   dependency) wraps every response (`Cors.scala`), including the two
   health-check routes. Allow all origins, GET/POST/PATCH/PUT/DELETE,

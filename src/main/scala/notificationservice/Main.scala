@@ -2,7 +2,10 @@ package notificationservice
 
 import cats.effect.{IO, IOApp, Resource}
 import com.comcast.ip4s._
+import org.http4s.ember.client.EmberClientBuilder
 import org.http4s.ember.server.EmberServerBuilder
+
+import scala.concurrent.duration._
 
 /** Acquires every dependency notification-service needs, builds the routes, and
   * serves them — a single flat `Resource` for-comprehension, one `<-` per
@@ -35,10 +38,26 @@ object Main extends IOApp.Simple {
       )("notification-service starting")
     )
     emailStore <- SentEmailStore.postgres[IO](config.postgres)
+    // Recipient resolution (ADM-3/ADR 0025): one shared client, an explicit
+    // request timeout so a hung lookup cannot stall a consumer partition, and
+    // the two typed, resilience-wrapped lookups.
+    httpClient <- EmberClientBuilder.default[IO].withTimeout(5.seconds).build
+    userClient = UserClient.resilient[IO](
+      httpClient,
+      config.userClient,
+      telemetry
+    )
+    orderClient = OrderClient.resilient[IO](
+      httpClient,
+      config.orderClient,
+      telemetry
+    )
+    resolver = RecipientResolver[IO](userClient, orderClient)
     emailClient = EmailClient.audited[IO](
       emailStore,
       EmailClient.logging[IO](telemetry.logger),
-      telemetry.logger
+      telemetry.logger,
+      resolver
     )
     consumersFailed <- KafkaConsumers.resource[IO](
       config.kafka,

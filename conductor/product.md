@@ -17,7 +17,11 @@ and `PaymentCaptured`/`PaymentFailed` (receipt / payment-problem). The old
 single `OrderStatusChanged` event was split in TD-15 and is retired. ADM-2
 reintroduces Postgres as an email audit store and adds a read-only
 `GET /emails?customerId=&orderId=` endpoint for the Admin console; there is
-still no HTTP write API.
+still no HTTP write API. ADM-3 resolves recipients at send time — a
+customerId through user-service `GET /users/{id}`, an orderId-only
+payment/fulfilment event through order-service `GET /orders/{id}` first — and
+records the address in `sent_email.recipient_email`; an unknown customer is
+terminal `unresolved` and never sent (ADR 0025).
 
 Generated via `pure-service-generator` (giter8 template over `purerest`), no
 field-spec applied (`gluon/specs/notification.yaml` doesn't exist — none was

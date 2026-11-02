@@ -68,27 +68,30 @@ object OrderEventsConsumer {
       email: (String, String),
       actor: Option[OrderActor] = None
   ): F[Unit] =
-    emailClient.send(
-      EmailMessage(
-        sourceEventId = eventId,
-        eventType = eventType,
-        reason = reason,
-        recipientType = RecipientType.Customer,
-        recipientKey = customerId,
-        customerId = Some(customerId),
-        orderId = Some(orderId),
-        subject = email._1,
-        body = email._2
-      )
-    ) *>
-      logger.info(
-        Map(
-          "order_id" -> orderId,
-          "event_type" -> eventType
-        ) ++ actor.fold(Map.empty[String, String])(a =>
-          Map("actor_type" -> a.`type`, "actor_id" -> a.id)
+    emailClient
+      .send(
+        EmailMessage(
+          sourceEventId = eventId,
+          eventType = eventType,
+          reason = reason,
+          recipientType = RecipientType.Customer,
+          recipientKey = customerId,
+          customerId = Some(customerId),
+          orderId = Some(orderId),
+          subject = email._1,
+          body = email._2
         )
-      )(s"Sent $eventType email (order_id=$orderId)")
+      )
+      .flatMap(
+        EmailSendLog.log(
+          logger,
+          Map("order_id" -> orderId, "event_type" -> eventType) ++
+            actor.fold(Map.empty[String, String])(a =>
+              Map("actor_type" -> a.`type`, "actor_id" -> a.id)
+            ),
+          eventType
+        )
+      )
 
   /** One `order-events` record, minus the offset commit - split from [[run]] so
     * the routing is testable without a broker.

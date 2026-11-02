@@ -69,7 +69,8 @@ class SentEmailStorePostgresSuite
   private def newEmail(
       sourceEventId: String,
       customerId: Option[String] = Some("customer-1"),
-      orderId: Option[String] = Some("order-1")
+      orderId: Option[String] = Some("order-1"),
+      recipientEmail: Option[String] = None
   ): NewSentEmail =
     NewSentEmail(
       id = UUID.randomUUID(),
@@ -78,6 +79,7 @@ class SentEmailStorePostgresSuite
       reason = None,
       recipientType = RecipientType.Customer,
       recipientKey = customerId.getOrElse("customer-1"),
+      recipientEmail = recipientEmail,
       customerId = customerId,
       orderId = orderId,
       subject = "subject",
@@ -169,6 +171,52 @@ class SentEmailStorePostgresSuite
       assert(row.flatMap(_.sentAt).isDefined)
       assertEquals(row.flatMap(_.failedAt), None)
     }
+  }
+
+  withStore("markResolved records attribution and survives a retry") {
+    (store, _) =>
+      val first = newEmail("event-1", Some("customer-1"), recipientEmail = None)
+      for {
+        _ <- store.claim(first)
+        _ <- store.markResolved(
+          first.id,
+          Some("customer-1"),
+          Some("ada@example.com")
+        )
+        resolved <- store.get("event-1")
+        _ <- store.markFailed(first.id, "smtp down")
+        claim <- store.claim(newEmail("event-1"))
+        retried <- store.get("event-1")
+      } yield {
+        assertEquals(
+          resolved.flatMap(_.recipientEmail),
+          Some("ada@example.com")
+        )
+        assertEquals(claim, EmailClaim.Send(first.id))
+        assertEquals(
+          retried.flatMap(_.recipientEmail),
+          Some("ada@example.com")
+        )
+        assertEquals(retried.flatMap(_.customerId), Some("customer-1"))
+      }
+  }
+
+  withStore("markUnresolved is terminal and reported as a duplicate") {
+    (store, _) =>
+      val first = newEmail("event-1")
+      for {
+        _ <- store.claim(first)
+        _ <- store.markUnresolved(first.id, "unknown_customer:customer-1")
+        row <- store.get("event-1")
+        claim <- store.claim(newEmail("event-1"))
+      } yield {
+        assertEquals(row.map(_.status), Some(EmailStatus.Unresolved))
+        assertEquals(
+          row.flatMap(_.error),
+          Some("unknown_customer:customer-1")
+        )
+        assertEquals(claim, EmailClaim.Duplicate)
+      }
   }
 
   withStore("list filters by customerId, orderId, both or neither") {

@@ -52,7 +52,6 @@ object FulfilmentEventConsumer {
         eventType: String,
         orderId: String,
         email: (String, String),
-        outcome: String,
         reason: Option[String]
     ) =
       sendEmail(
@@ -62,7 +61,6 @@ object FulfilmentEventConsumer {
         eventType,
         orderId,
         email,
-        outcome,
         reason
       )
     EnvelopeHandler.handle[F](
@@ -75,7 +73,6 @@ object FulfilmentEventConsumer {
               "DispatchConfirmed",
               e.orderId,
               shippedEmail(e),
-              "shipped",
               None
             )
         },
@@ -86,7 +83,6 @@ object FulfilmentEventConsumer {
               "DispatchFailed",
               e.orderId,
               failedEmail(e),
-              "dispatch_failed",
               Some(e.reason)
             )
         }
@@ -103,24 +99,28 @@ object FulfilmentEventConsumer {
       eventType: String,
       orderId: String,
       email: (String, String),
-      outcome: String,
       reason: Option[String]
   ): F[Unit] =
-    emailClient.send(
-      EmailMessage(
-        sourceEventId = eventId,
-        eventType = eventType,
-        reason = reason,
-        recipientType = RecipientType.Order,
-        recipientKey = orderId,
-        customerId = None,
-        orderId = Some(orderId),
-        subject = email._1,
-        body = email._2
+    emailClient
+      .send(
+        EmailMessage(
+          sourceEventId = eventId,
+          eventType = eventType,
+          reason = reason,
+          recipientType = RecipientType.Order,
+          recipientKey = orderId,
+          customerId = None,
+          orderId = Some(orderId),
+          subject = email._1,
+          body = email._2
+        )
       )
-    ) *>
-      logger.info(Map("order_id" -> orderId, "outcome" -> outcome))(
-        s"Sent fulfilment email (order_id=$orderId, outcome=$outcome)"
+      .flatMap(
+        EmailSendLog.log(
+          logger,
+          Map("order_id" -> orderId, "event_type" -> eventType),
+          eventType
+        )
       )
 
   def run[F[_]: Async](

@@ -17,6 +17,12 @@ class NotificationDocsSuite extends CatsEffectSuite {
       IO.pure(EmailClaim.Send(email.id))
     def markSent(id: UUID): IO[Unit] = IO.unit
     def markFailed(id: UUID, error: String): IO[Unit] = IO.unit
+    def markResolved(
+        id: UUID,
+        customerId: Option[String],
+        recipientEmail: Option[String]
+    ): IO[Unit] = IO.unit
+    def markUnresolved(id: UUID, reason: String): IO[Unit] = IO.unit
     def get(sourceEventId: String): IO[Option[SentEmailRow]] = IO.pure(None)
     def list(
         customerId: Option[String],

@@ -97,7 +97,8 @@ class MigrationsSuite extends CatsEffectSuite with TestContainerForAll {
             "created_at",
             "sent_at",
             "failed_at",
-            "error"
+            "error",
+            "recipient_email"
           )
         )
       }
@@ -145,6 +146,8 @@ class MigrationsSuite extends CatsEffectSuite with TestContainerForAll {
             insertRow(conn, "event-3", status = "bogus")
           )
           assertEquals(badStatus.getSQLState, "23514")
+          // ADM-3's terminal state is accepted.
+          insertRow(conn, "event-4", status = "unresolved")
         }
       }
     }

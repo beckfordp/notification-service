@@ -1,15 +1,36 @@
 package notificationservice
 
 import cats.effect.Sync
+import org.http4s.Uri
 import pureconfig.{ConfigReader, ConfigSource}
+import pureconfig.error.CannotConvert
 import purekafka.consumer.StreamSupervisorConfig
 import purekafka.resilience.{
   CircuitBreakerConfig => KafkaCircuitBreakerConfig,
   ResilienceConfig => KafkaResilienceConfig,
   RetryConfig => KafkaRetryConfig
 }
+import purerest.resilience.{CircuitBreakerConfig, ResilienceConfig, RetryConfig}
 
 import scala.concurrent.duration._
+
+// Client base URLs are parsed/validated as `Uri` at config-load time, so no
+// `Uri.unsafeFromString` can throw later during wiring (TD-15.1).
+given ConfigReader[Uri] =
+  ConfigReader[String].emap { raw =>
+    Uri.fromString(raw) match {
+      case Right(uri)    => Right(uri)
+      case Left(failure) =>
+        Left(CannotConvert(raw, "Uri", failure.message))
+    }
+  }
+
+// purerest's resilience case classes don't derive ConfigReader themselves
+// (the library has no PureConfig dependency) - instances are derived here,
+// the same way order-service's OrderServiceConfig does.
+given ConfigReader[RetryConfig] = ConfigReader.derived
+given ConfigReader[CircuitBreakerConfig] = ConfigReader.derived
+given ConfigReader[ResilienceConfig] = ConfigReader.derived
 
 // purekafka's own resilience/consumer config case classes don't derive
 // ConfigReader themselves (the library has no PureConfig dependency) -
@@ -54,13 +75,25 @@ final case class PostgresConfig(
     password: String
 ) derives ConfigReader
 
+final case class UserClientConfig(
+    baseUrl: Uri,
+    resilience: ResilienceConfig
+) derives ConfigReader
+
+final case class OrderClientConfig(
+    baseUrl: Uri,
+    resilience: ResilienceConfig
+) derives ConfigReader
+
 final case class NotificationServiceConfig(
     port: Int,
     metricsPort: Int,
     serviceName: String,
     asyncApiHtmlDir: String,
     postgres: PostgresConfig,
-    kafka: KafkaConfig
+    kafka: KafkaConfig,
+    userClient: UserClientConfig,
+    orderClient: OrderClientConfig
 ) derives ConfigReader
 
 object NotificationServiceConfig {
