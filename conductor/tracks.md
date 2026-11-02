@@ -2,9 +2,6 @@
 
 This file tracks all major tracks for the project.
 
-- [ ] **Track: Reason-specific cancellation email (US-9.9, Journey 5)**
-  *Link: [./tracks/cancellation-copy_20261102/](./tracks/cancellation-copy_20261102/)*
-
 ---
 
 ## Backlog
