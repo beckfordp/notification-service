@@ -50,15 +50,17 @@
 
 ## Phase 4: Read API and wiring
 
-- [ ] Task: Failing `EmailRoutesSuite` (filters, AND semantics, ordering,
+- [x] Task: Failing `EmailRoutesSuite` (filters, AND semantics, ordering,
   empty result, JSON shape) and updated `NotificationDocsSuite` (Red);
   implement `EmailRoutes` with tapir and register it in `AppRoutes` /
-  `Docs.routes` (Green).
-- [ ] Task: Wire `Migrations`, `SentEmailStore` and the audited `EmailClient`
+  `Docs.routes` (Green). (ac61988)
+- [x] Task: Wire `Migrations`, `SentEmailStore` and the audited `EmailClient`
   into `Main` and `KafkaConsumers`; document the endpoint and local-Postgres
-  prerequisite in `README.md` (Green).
-- [ ] Task: Conductor - User Manual Verification 'Read API and wiring'
-  (Protocol in workflow.md)
+  prerequisite in `README.md` (Green). (ac61988)
+- [x] Task: Conductor - User Manual Verification 'Read API and wiring'
+  (Protocol in workflow.md) — prompting off: verified by `EmailRoutesSuite`
+  and `NotificationDocsSuite`, plus the full suite (84 passed, 6 pre-existing
+  ignored).
 
 ## Phase 5: Verification
 
