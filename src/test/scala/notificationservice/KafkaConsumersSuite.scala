@@ -83,12 +83,15 @@ class KafkaConsumersSuite extends CatsEffectSuite with TestContainerForAll {
       failOnCustomerId: String,
       emailsRef: Ref[IO, List[SentEmail]]
   ): EmailClient[IO] = new EmailClient[IO] {
-    def send(to: String, subject: String, body: String): IO[Unit] =
-      if (to == failOnCustomerId)
+    def send(message: EmailMessage): IO[Unit] =
+      if (message.recipientKey == failOnCustomerId)
         IO.raiseError(
           new RuntimeException("synthetic permanent email-send failure")
         )
-      else emailsRef.update(_ :+ SentEmail(to, subject, body))
+      else
+        emailsRef.update(
+          _ :+ SentEmail(message.recipientKey, message.subject, message.body)
+        )
   }
 
   /** Consumes whatever's on `topic` right now (from the beginning) within a

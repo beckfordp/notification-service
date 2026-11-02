@@ -34,8 +34,14 @@ object RecordingEmailClient {
     Ref.of[IO, List[SentEmail]](Nil).map { ref =>
       (
         new EmailClient[IO] {
-          def send(to: String, subject: String, body: String): IO[Unit] =
-            ref.update(_ :+ SentEmail(to, subject, body))
+          def send(message: EmailMessage): IO[Unit] =
+            ref.update(
+              _ :+ SentEmail(
+                message.recipientKey,
+                message.subject,
+                message.body
+              )
+            )
         },
         ref
       )

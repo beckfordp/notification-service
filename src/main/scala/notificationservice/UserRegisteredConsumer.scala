@@ -49,9 +49,10 @@ object UserRegisteredConsumer {
     EnvelopeHandler.handle[F](
       topic,
       List(
-        EnvelopeRoute.of[F, UserRegisteredEvent](eventType)(
-          sendWelcome(emailClient, logger, _)
-        )
+        EnvelopeRoute.of[F, UserRegisteredEvent](eventType) {
+          (eventId, event) =>
+            sendWelcome(emailClient, logger, eventId, event)
+        }
       ),
       logger,
       deadLetter
@@ -60,10 +61,23 @@ object UserRegisteredConsumer {
   private def sendWelcome[F[_]: FlatMap](
       emailClient: EmailClient[F],
       logger: StructuredLogger[F],
+      eventId: String,
       event: UserRegisteredEvent
   ): F[Unit] = {
     val (subject, body) = emailFor(event)
-    emailClient.send(event.email, subject, body) *>
+    emailClient.send(
+      EmailMessage(
+        sourceEventId = eventId,
+        eventType = eventType,
+        reason = None,
+        recipientType = RecipientType.Email,
+        recipientKey = event.email,
+        customerId = Some(event.userId),
+        orderId = None,
+        subject = subject,
+        body = body
+      )
+    ) *>
       logger.info(Map("user_id" -> event.userId))(
         s"Sent UserRegistered welcome email (user_id=${event.userId})"
       )

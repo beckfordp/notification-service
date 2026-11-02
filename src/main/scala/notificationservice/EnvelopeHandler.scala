@@ -8,18 +8,22 @@ import org.typelevel.log4cats.StructuredLogger
 import purekafka.consumer.DeadLetter
 
 /** One `eventType` a consumer acts on: how to decode its payload and what to do
-  * with it.
+  * with it. The handler receives the envelope `eventId`, which the audited
+  * email client uses as the `sent_email` idempotency key (ADM-2).
   */
 final case class EnvelopeRoute[F[_]](
     eventType: String,
-    run: Json => Decoder.Result[F[Unit]]
+    run: (String, Json) => Decoder.Result[F[Unit]]
 )
 
 object EnvelopeRoute {
   def of[F[_], A: Decoder](eventType: String)(
-      handle: A => F[Unit]
+      handle: (String, A) => F[Unit]
   ): EnvelopeRoute[F] =
-    EnvelopeRoute(eventType, _.as[A].map(handle))
+    EnvelopeRoute(
+      eventType,
+      (eventId, json) => json.as[A].map(handle(eventId, _))
+    )
 }
 
 /** The per-record decision every consumer shares (defined once, not per
@@ -67,7 +71,7 @@ object EnvelopeHandler {
                   Map("topic" -> topic, "event_type" -> envelope.eventType)
                 )(s"Ignoring unrelated $topic event type")
               case Some(route) =>
-                route.run(envelope.payload) match {
+                route.run(envelope.eventId, envelope.payload) match {
                   case Left(error) =>
                     deadLetterRaw(raw, error, s"${route.eventType} payload")
                   case Right(action) =>

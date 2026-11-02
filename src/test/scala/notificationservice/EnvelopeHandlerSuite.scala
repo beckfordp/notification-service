@@ -29,7 +29,7 @@ class EnvelopeHandlerSuite extends CatsEffectSuite {
   )
 
   private final case class Fixture(
-      handled: Ref[IO, List[UserRegisteredEvent]],
+      handled: Ref[IO, List[(String, UserRegisteredEvent)]],
       dlq: TestDeadLetter,
       logger: StructuredTestingLogger[IO],
       run: (String, Option[String]) => IO[Unit]
@@ -37,13 +37,14 @@ class EnvelopeHandlerSuite extends CatsEffectSuite {
 
   private def fixture(fail: Boolean = false): IO[Fixture] =
     for {
-      handled <- Ref.of[IO, List[UserRegisteredEvent]](Nil)
+      handled <- Ref.of[IO, List[(String, UserRegisteredEvent)]](Nil)
       dlq <- TestDeadLetter.create
       logger = StructuredTestingLogger.impl[IO]()
       routes = List(
-        EnvelopeRoute.of[IO, UserRegisteredEvent]("UserRegistered") { e =>
-          if (fail) IO.raiseError(new RuntimeException("boom"))
-          else handled.update(_ :+ e)
+        EnvelopeRoute.of[IO, UserRegisteredEvent]("UserRegistered") {
+          (eventId, e) =>
+            if (fail) IO.raiseError(new RuntimeException("boom"))
+            else handled.update(_ :+ (eventId -> e))
         }
       )
     } yield Fixture(
@@ -53,14 +54,19 @@ class EnvelopeHandlerSuite extends CatsEffectSuite {
       EnvelopeHandler.handle[IO](topic, routes, logger, dlq.deadLetter)
     )
 
-  test("a known event type is decoded and handled, nothing dead-lettered") {
+  test(
+    "a known event type is decoded and handled with the envelope eventId"
+  ) {
     for {
       f <- fixture()
       _ <- f.run("k", Some(known))
       handled <- f.handled.get
       routed <- f.dlq.routed.get
     } yield {
-      assertEquals(handled, List(UserRegisteredEvent("u1", "a@example.com")))
+      assertEquals(
+        handled,
+        List("e1" -> UserRegisteredEvent("u1", "a@example.com"))
+      )
       assertEquals(routed, Nil)
     }
   }

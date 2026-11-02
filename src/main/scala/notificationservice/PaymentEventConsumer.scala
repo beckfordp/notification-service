@@ -58,16 +58,48 @@ object PaymentEventConsumer {
       logger: StructuredLogger[F],
       deadLetter: DeadLetter[F, String, String]
   )(key: String, value: Option[String]): F[Unit] = {
-    def send(orderId: String, email: (String, String), outcome: String) =
-      sendEmail(emailClient, logger, orderId, email, outcome)
+    def send(
+        eventId: String,
+        eventType: String,
+        orderId: String,
+        email: (String, String),
+        outcome: String,
+        reason: Option[String]
+    ) =
+      sendEmail(
+        emailClient,
+        logger,
+        eventId,
+        eventType,
+        orderId,
+        email,
+        outcome,
+        reason
+      )
     EnvelopeHandler.handle[F](
       topic,
       List(
-        EnvelopeRoute.of[F, PaymentCapturedEvent]("PaymentCaptured") { e =>
-          send(e.orderId, receiptEmail(e), "payment_captured")
+        EnvelopeRoute.of[F, PaymentCapturedEvent]("PaymentCaptured") {
+          (eventId, e) =>
+            send(
+              eventId,
+              "PaymentCaptured",
+              e.orderId,
+              receiptEmail(e),
+              "payment_captured",
+              None
+            )
         },
-        EnvelopeRoute.of[F, PaymentFailedEvent]("PaymentFailed") { e =>
-          send(e.orderId, failedEmail(e), "payment_failed")
+        EnvelopeRoute.of[F, PaymentFailedEvent]("PaymentFailed") {
+          (eventId, e) =>
+            send(
+              eventId,
+              "PaymentFailed",
+              e.orderId,
+              failedEmail(e),
+              "payment_failed",
+              Some(e.reason)
+            )
         }
       ),
       logger,
@@ -78,11 +110,26 @@ object PaymentEventConsumer {
   private def sendEmail[F[_]: FlatMap](
       emailClient: EmailClient[F],
       logger: StructuredLogger[F],
+      eventId: String,
+      eventType: String,
       orderId: String,
       email: (String, String),
-      outcome: String
+      outcome: String,
+      reason: Option[String]
   ): F[Unit] =
-    emailClient.send(orderId, email._1, email._2) *>
+    emailClient.send(
+      EmailMessage(
+        sourceEventId = eventId,
+        eventType = eventType,
+        reason = reason,
+        recipientType = RecipientType.Order,
+        recipientKey = orderId,
+        customerId = None,
+        orderId = Some(orderId),
+        subject = email._1,
+        body = email._2
+      )
+    ) *>
       logger.info(Map("order_id" -> orderId, "outcome" -> outcome))(
         s"Sent payment email (order_id=$orderId, outcome=$outcome)"
       )

@@ -60,12 +60,26 @@ object OrderEventsConsumer {
   private def send[F[_]: FlatMap](
       emailClient: EmailClient[F],
       logger: StructuredLogger[F],
+      eventId: String,
       customerId: String,
       orderId: String,
       eventType: String,
+      reason: Option[String],
       email: (String, String)
   ): F[Unit] =
-    emailClient.send(customerId, email._1, email._2) *>
+    emailClient.send(
+      EmailMessage(
+        sourceEventId = eventId,
+        eventType = eventType,
+        reason = reason,
+        recipientType = RecipientType.Customer,
+        recipientKey = customerId,
+        customerId = Some(customerId),
+        orderId = Some(orderId),
+        subject = email._1,
+        body = email._2
+      )
+    ) *>
       logger.info(
         Map("order_id" -> orderId, "event_type" -> eventType)
       )(s"Sent $eventType email (order_id=$orderId)")
@@ -81,36 +95,44 @@ object OrderEventsConsumer {
     EnvelopeHandler.handle[F](
       topic,
       List(
-        EnvelopeRoute.of[F, OrderConfirmedEvent]("OrderConfirmed") { e =>
-          send(
-            emailClient,
-            logger,
-            e.customerId,
-            e.orderId,
-            "OrderConfirmed",
-            confirmedEmail(e)
-          )
-        },
-        EnvelopeRoute.of[F, OrderPaymentFailedEvent]("OrderPaymentFailed") {
-          e =>
+        EnvelopeRoute.of[F, OrderConfirmedEvent]("OrderConfirmed") {
+          (eventId, e) =>
             send(
               emailClient,
               logger,
+              eventId,
+              e.customerId,
+              e.orderId,
+              "OrderConfirmed",
+              None,
+              confirmedEmail(e)
+            )
+        },
+        EnvelopeRoute.of[F, OrderPaymentFailedEvent]("OrderPaymentFailed") {
+          (eventId, e) =>
+            send(
+              emailClient,
+              logger,
+              eventId,
               e.customerId,
               e.orderId,
               "OrderPaymentFailed",
+              Some(e.reason),
               paymentFailedEmail(e)
             )
         },
-        EnvelopeRoute.of[F, OrderCancelledEvent]("OrderCancelled") { e =>
-          send(
-            emailClient,
-            logger,
-            e.customerId,
-            e.orderId,
-            "OrderCancelled",
-            cancelledEmail(e)
-          )
+        EnvelopeRoute.of[F, OrderCancelledEvent]("OrderCancelled") {
+          (eventId, e) =>
+            send(
+              emailClient,
+              logger,
+              eventId,
+              e.customerId,
+              e.orderId,
+              "OrderCancelled",
+              e.reason,
+              cancelledEmail(e)
+            )
         }
       ),
       logger,
