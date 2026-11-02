@@ -14,10 +14,10 @@ notification-service consumes the per-outcome lifecycle events on
 and sends the matching customer email; it also handles `UserRegistered`
 (welcome), `DispatchConfirmed`/`DispatchFailed` (shipped / dispatch-failed)
 and `PaymentCaptured`/`PaymentFailed` (receipt / payment-problem). The old
-single `OrderStatusChanged` event was split in TD-15 and is retired. No HTTP
-write API, no customer-facing endpoints — Kafka consumer only, per
-`user-stories.md`'s US-7 framing ("New `notification-service`, Kafka consumer
-only, no database").
+single `OrderStatusChanged` event was split in TD-15 and is retired. ADM-2
+reintroduces Postgres as an email audit store and adds a read-only
+`GET /emails?customerId=&orderId=` endpoint for the Admin console; there is
+still no HTTP write API.
 
 Generated via `pure-service-generator` (giter8 template over `purerest`), no
 field-spec applied (`gluon/specs/notification.yaml` doesn't exist — none was
@@ -110,8 +110,9 @@ integrating a real email service.
   and `payment-events` (`PaymentCaptured`/`PaymentFailed`, US-19.4)
 
 ## Out of scope for this service
-- Any HTTP write API / CRUD persistence (removed — see "Current state"
-  above; not being reintroduced)
+- Any HTTP write API / CRUD persistence — remains out. ADM-2 adds only a
+  read-only email-audit endpoint and the `sent_email` store behind it; the
+  stripped CRUD routes are not being reintroduced.
 - A real email/notification provider (not decided yet — stub only, per
   PLAN.md Phase 5's exit criteria)
 - The cancel-order flow (US-9, separate epic) and stale-pending-order
@@ -129,3 +130,12 @@ Track `payment-emails_20261028` (US-19.4, complete) added
 payment was received" (order + `$` amount) and PaymentFailed sends "We
 couldn't take your payment" (order + amount + reason). Same stub recipient
 (orderId) — payment events also carry no email/contact.
+
+Track `sent-email-audit_20261102` (ADM-2) gives the service its first
+datastore since the CRUD strip: Postgres + Flyway, a `sent_email` audit
+table keyed by the envelope `eventId` (unique, so redeliveries never send
+twice), and `GET /emails?customerId=&orderId=` for the Admin console's
+Customers tab. The send is still the logging stub; the row records
+`pending → sent|failed` around it. Recipient resolution (mapping
+payment/fulfilment emails back to a customer) and the real provider remain
+later work (ADM-3).

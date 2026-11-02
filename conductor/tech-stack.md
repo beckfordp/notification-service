@@ -56,8 +56,10 @@
   `registry/README.md`).
 
 ## Config
-- pureconfig 0.17.10 — typed config from `application.conf` (now just
-  port/metrics-port/service-name, since `PostgresConfig` was removed)
+- pureconfig 0.17.10 — typed config from `application.conf`: port/metrics-port/
+  service-name, plus the `postgres` block (host/port/database/user/password
+  with `POSTGRES_*` env overrides) reintroduced by ADM-2 for the sent-email
+  audit store
 
 ## Shared platform library
 - `purerestlib` 0.7.3 (`io.github.beckfordp`) — tracing, structured logging,
@@ -69,10 +71,24 @@
   only — not applicable to this service's Kafka consumer; see
   `system-design.md`'s "Reliability" note.)
 
+## Persistence (reintroduced by ADM-2)
+- Skunk 1.0.0 (`skunk-core`) — non-blocking, pure-FP Postgres access for the
+  `sent_email` audit store; runtime queries only, mirroring order-service.
+- Flyway 11.8.2 (`flyway-core` + `flyway-database-postgresql`) —
+  startup-only schema migration (`Migrations`, `V1__create_sent_email.sql`).
+  Independent of Skunk.
+- postgresql (pgjdbc) 42.7.13 — Runtime only, used solely by Flyway through
+  JDBC's `DriverManager`.
+- Skunk's otel4s 0.16.0 transitive dependencies conflict with purerestlib's
+  1.1.0, so the three `otel4s-core*` coordinates are pinned via
+  `dependencyOverrides` (same resolution as order-service and purerest).
+
 ## Testing
 - munit 1.3.6 + munit-cats-effect 2.2.1
 - log4cats-testing 2.8.0 — assert on structured log output
 - scalafmt (default Scala 3 style) — `sbt scalafmtCheck test` run in CI
+- testcontainers-scala-postgresql — real ephemeral Postgres for the
+  migration, store and route suites added by ADM-2.
 - testcontainers-scala-kafka — added for US-7.1's consumer integration
   tests (now `OrderEventsConsumerSuite`). The original
   Docker-API-version blocker (docker-java hardcoded to API 1.32,
@@ -89,9 +105,10 @@
 ## Packaging / local deploy
 - sbt-native-packager (`JavaAppPackaging`, `DockerPlugin`)
 - Docker image: `eclipse-temurin:21-jre`
-- Docker Compose — declares one service: a single-node KRaft-mode Kafka
+- Docker Compose — still declares one service: a single-node KRaft-mode Kafka
   broker (`apache/kafka:3.8.0`), mirroring payment-service's
-  `docker-compose.yml` exactly.
+  `docker-compose.yml` exactly. The Postgres service, Kubernetes deployment
+  and readiness gating for the audit store are ADM-6, not ADM-2.
 
 ## Messaging
 - fs2-kafka 3.6.0 — consumer side only (no publish side for this
@@ -116,12 +133,12 @@
   in one never restarts the others. Replaces the old hand-rolled `readyRef`/
   `onFinalizeCase` restart signal (found broken 2026-10-09 — stuck at
   503 forever after a dropped connection) entirely.
-- Readiness: `/health/ready` now always returns `200`, same as
-  `/health` — there's no DB/store to gate on, and `StreamSupervisor`
-  structurally eliminates the "stuck forever" state the old mechanism
-  existed to signal.
+- Readiness: `/health/ready` still always returns `200`, same as
+  `/health` — ADM-2 adds a DB but deliberately leaves readiness gating
+  (and migrations-at-deploy verification) to ADM-6.
 - Email: no real provider decided yet (per PLAN.md Phase 5) —
-  `EmailClient.logging` stubs the send as a structured log line.
+  `EmailClient.logging` stubs the transport, while the auditing
+  `EmailClient` persists each attempt to `sent_email` (ADM-2).
 
 ## Target infrastructure (platform-wide, from `gluon/docs/system-design.md`)
 - Local: OrbStack Kubernetes (see ADR 0002)
