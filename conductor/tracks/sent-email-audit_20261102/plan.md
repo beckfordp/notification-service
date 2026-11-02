@@ -8,13 +8,14 @@
 - [x] Task: Failing config test for `PostgresConfig` defaults and `POSTGRES_*`
   env overrides; add `PostgresConfig`, the `postgres` block in
   `application.conf`, and config wiring (Red → Green). (d8edda4)
-- [ ] Task: Failing `MigrationsSuite` (Testcontainers Postgres) asserting
+- [x] Task: Failing `MigrationsSuite` (Testcontainers Postgres) asserting
   `sent_email` columns, check constraints and indexes; add Skunk, Flyway
   (core + postgresql), pgjdbc, Testcontainers-Postgres and the otel4s
   overrides to `build.sbt`; add `Migrations.scala` and
-  `V1__create_sent_email.sql` (Red → Green).
-- [ ] Task: Conductor - User Manual Verification 'Persistence foundation'
-  (Protocol in workflow.md)
+  `V1__create_sent_email.sql` (Red → Green). (8cde91f)
+- [x] Task: Conductor - User Manual Verification 'Persistence foundation'
+  (Protocol in workflow.md) — prompting off: verified by the committed
+  `NotificationServiceConfigSuite` and `MigrationsSuite`, both green.
 
 ## Phase 2: Sent-email store
 
