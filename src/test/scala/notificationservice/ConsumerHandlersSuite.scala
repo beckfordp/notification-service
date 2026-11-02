@@ -85,6 +85,25 @@ class ConsumerHandlersSuite extends CatsEffectSuite {
     assertSent(order, "OrderCancelled", cancelled.asJson, SentEmail("c1", s, b))
   }
 
+  test("order-events: cancellation copy distinguishes the reason (US-9.9)") {
+    val reasonCopy = List(
+      Some("customer") -> "at your request",
+      Some("auth_expired") -> "payment authorization expired",
+      Some("stale") -> "could not be completed in time",
+      Some("operator") -> "support team",
+      Some("something_else") -> "Order o1 was cancelled.",
+      None -> "Order o1 was cancelled."
+    )
+    for ((reason, expected) <- reasonCopy) {
+      val event = OrderCancelledEvent("o1", "c1", ts, reason)
+      val (_, body) = OrderEventsConsumer.cancelledEmail(event)
+      assert(
+        body.contains(expected),
+        s"reason=$reason body='$body' did not contain '$expected'"
+      )
+    }
+  }
+
   test("user-events: UserRegistered emails the new user's address") {
     val event = UserRegisteredEvent("u1", "jane@example.com")
     val (s, b) = UserRegisteredConsumer.emailFor(event)

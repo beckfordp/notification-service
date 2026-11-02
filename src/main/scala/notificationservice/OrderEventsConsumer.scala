@@ -41,11 +41,21 @@ object OrderEventsConsumer {
       s"We couldn't process your payment for order ${event.orderId}."
     )
 
-  def cancelledEmail(event: OrderCancelledEvent): (String, String) =
-    (
-      "Your order was cancelled",
-      s"Order ${event.orderId} was cancelled because its payment authorization expired."
-    )
+  def cancelledEmail(event: OrderCancelledEvent): (String, String) = {
+    val body = event.reason match {
+      case Some("customer") =>
+        s"Order ${event.orderId} was cancelled at your request."
+      case Some("auth_expired") =>
+        s"Order ${event.orderId} was cancelled because its payment authorization expired."
+      case Some("stale") =>
+        s"Order ${event.orderId} was cancelled because it could not be completed in time."
+      case Some("operator") =>
+        s"Order ${event.orderId} was cancelled by our support team."
+      case Some(_) | None =>
+        s"Order ${event.orderId} was cancelled."
+    }
+    ("Your order was cancelled", body)
+  }
 
   private def send[F[_]: FlatMap](
       emailClient: EmailClient[F],

@@ -30,12 +30,18 @@ class OrderEventsSuite extends CatsEffectSuite {
     )
   }
 
-  test("decodes OrderCancelled") {
-    val json =
+  test("decodes OrderCancelled, with reason optional for old messages") {
+    val legacy =
       """{"orderId":"order-1","customerId":"cust-1","timestamp":"2026-01-01T00:00:00Z"}"""
     assertEquals(
-      decode[OrderCancelledEvent](json),
+      decode[OrderCancelledEvent](legacy),
       Right(OrderCancelledEvent("order-1", "cust-1", at))
+    )
+    val withReason =
+      """{"orderId":"order-1","customerId":"cust-1","timestamp":"2026-01-01T00:00:00Z","reason":"customer"}"""
+    assertEquals(
+      decode[OrderCancelledEvent](withReason),
+      Right(OrderCancelledEvent("order-1", "cust-1", at, Some("customer")))
     )
   }
 

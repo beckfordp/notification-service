@@ -71,7 +71,12 @@ final case class OrderCancelledEvent(
     customerId: String,
     @description("When the order was cancelled (ISO-8601 instant).")
     @encodedExample("2026-10-31T10:15:30Z")
-    timestamp: Instant
+    timestamp: Instant,
+    @description(
+      "Cancellation trigger: customer | auth_expired | stale | operator."
+    )
+    @encodedExample("customer")
+    reason: Option[String] = None
 )
 
 object OrderCancelledEvent {
