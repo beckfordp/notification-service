@@ -85,6 +85,26 @@ class ConsumerHandlersSuite extends CatsEffectSuite {
     assertSent(order, "OrderCancelled", cancelled.asJson, SentEmail("c1", s, b))
   }
 
+  test("order-events: the cancellation actor is logged (US-22)") {
+    val event = OrderCancelledEvent(
+      "o1",
+      "c1",
+      ts,
+      Some("operator"),
+      Some(OrderActor("operator", "dev-operator"))
+    )
+    runOne(order, envelope("OrderCancelled", event.asJson)).map { result =>
+      assert(
+        result.logged.exists(m =>
+          m.ctx.get("actor_type").contains("operator") &&
+            m.ctx.get("actor_id").contains("dev-operator")
+        ),
+        result.logged
+      )
+      assertEquals(result.emails.map(_.to), List("c1"))
+    }
+  }
+
   test("order-events: cancellation copy distinguishes the reason (US-9.9)") {
     val reasonCopy = List(
       Some("customer") -> "at your request",

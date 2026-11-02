@@ -45,6 +45,23 @@ class OrderEventsSuite extends CatsEffectSuite {
     )
   }
 
+  test("decodes the optional OrderCancelled actor (v3)") {
+    val json =
+      """{"orderId":"order-1","customerId":"cust-1","timestamp":"2026-01-01T00:00:00Z","reason":"operator","actor":{"type":"operator","id":"dev-operator"}}"""
+    assertEquals(
+      decode[OrderCancelledEvent](json),
+      Right(
+        OrderCancelledEvent(
+          "order-1",
+          "cust-1",
+          at,
+          Some("operator"),
+          Some(OrderActor("operator", "dev-operator"))
+        )
+      )
+    )
+  }
+
   test("round-trips each event through encode/decode") {
     val confirmed = OrderConfirmedEvent("order-1", "cust-1", at)
     val paymentFailed =

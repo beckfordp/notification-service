@@ -59,8 +59,25 @@ object OrderPaymentFailedEvent {
   implicit val schema: Schema[OrderPaymentFailedEvent] = Schema.derived
 }
 
+/** Who triggered a cancellation (US-22, `OrderCancelled` v3). */
+@description("Cancellation actor: customer, operator or system.")
+final case class OrderActor(
+    @description("Actor type: customer | operator | system.")
+    @encodedExample("operator")
+    `type`: String,
+    @description("Actor id: the customerId, operator id, or system component.")
+    @encodedExample("dev-operator")
+    id: String
+)
+
+object OrderActor {
+  implicit val codec: Codec[OrderActor] = deriveCodec
+  implicit val schema: Schema[OrderActor] =
+    Schema.derived[OrderActor].copy(name = None)
+}
+
 @description(
-  "Order cancelled: order-service consumed PaymentAuthorizationExpired and moved the order to cancelled."
+  "Order cancelled: a customer/operator cancel or a consumed PaymentAuthorizationExpired moved the order to cancelled."
 )
 final case class OrderCancelledEvent(
     @description("Order UUID (order-service's order id).")
@@ -76,7 +93,9 @@ final case class OrderCancelledEvent(
       "Cancellation trigger: customer | auth_expired | stale | operator."
     )
     @encodedExample("customer")
-    reason: Option[String] = None
+    reason: Option[String] = None,
+    @description("Who cancelled; absent on pre-v3 messages.")
+    actor: Option[OrderActor] = None
 )
 
 object OrderCancelledEvent {

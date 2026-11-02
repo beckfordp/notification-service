@@ -65,7 +65,8 @@ object OrderEventsConsumer {
       orderId: String,
       eventType: String,
       reason: Option[String],
-      email: (String, String)
+      email: (String, String),
+      actor: Option[OrderActor] = None
   ): F[Unit] =
     emailClient.send(
       EmailMessage(
@@ -81,7 +82,12 @@ object OrderEventsConsumer {
       )
     ) *>
       logger.info(
-        Map("order_id" -> orderId, "event_type" -> eventType)
+        Map(
+          "order_id" -> orderId,
+          "event_type" -> eventType
+        ) ++ actor.fold(Map.empty[String, String])(a =>
+          Map("actor_type" -> a.`type`, "actor_id" -> a.id)
+        )
       )(s"Sent $eventType email (order_id=$orderId)")
 
   /** One `order-events` record, minus the offset commit - split from [[run]] so
@@ -131,7 +137,8 @@ object OrderEventsConsumer {
               e.orderId,
               "OrderCancelled",
               e.reason,
-              cancelledEmail(e)
+              cancelledEmail(e),
+              e.actor
             )
         }
       ),
