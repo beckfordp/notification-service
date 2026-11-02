@@ -2,9 +2,6 @@
 
 This file tracks all major tracks for the project.
 
-- [~] **Track: Checkout Journey 8 — notification actor mirror (US-22)**
-  *Link: [./tracks/j8-operator-actor_20261102/](./tracks/j8-operator-actor_20261102/)*
-
 ---
 
 ## Backlog
