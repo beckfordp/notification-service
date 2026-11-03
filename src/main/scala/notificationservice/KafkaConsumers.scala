@@ -7,7 +7,7 @@ import fs2.Stream
 import fs2.kafka.ProducerSettings
 import org.typelevel.log4cats.StructuredLogger
 import org.typelevel.otel4s.metrics.Meter
-import purekafka.consumer.{DeadLetter, StreamSupervisor}
+import purekafka.consumer.{DeadLetter, EventAge, StreamSupervisor}
 
 /** Wires every consumer with `purekafka`'s `StreamSupervisor`
   * (restart-with-backoff) and `DeadLetter` (bounded-retry-then-DLQ) -
@@ -32,6 +32,7 @@ object KafkaConsumers {
         .withBootstrapServers(config.bootstrapServers)
 
     for {
+      eventAge <- Stream.eval(EventAge.create[F](meter))
       orderDeadLetter <- Stream.resource(
         DeadLetter.resource[F, String, String](
           config.dlqRetry,
@@ -64,7 +65,7 @@ object KafkaConsumers {
         .supervise[F, Unit](config.streamSupervisor)(logger)(meter)(
           Async[F].pure(
             OrderEventsConsumer
-              .run[F](config, emailClient, logger, orderDeadLetter)
+              .run[F](config, emailClient, logger, orderDeadLetter, eventAge)
           )
         )
         .merge(
@@ -73,7 +74,7 @@ object KafkaConsumers {
           )(meter)(
             Async[F].pure(
               UserRegisteredConsumer
-                .run[F](config, emailClient, logger, userDeadLetter)
+                .run[F](config, emailClient, logger, userDeadLetter, eventAge)
             )
           )
         )
@@ -83,7 +84,13 @@ object KafkaConsumers {
           )(meter)(
             Async[F].pure(
               FulfilmentEventConsumer
-                .run[F](config, emailClient, logger, fulfilmentDeadLetter)
+                .run[F](
+                  config,
+                  emailClient,
+                  logger,
+                  fulfilmentDeadLetter,
+                  eventAge
+                )
             )
           )
         )
@@ -93,7 +100,13 @@ object KafkaConsumers {
           )(meter)(
             Async[F].pure(
               PaymentEventConsumer
-                .run[F](config, emailClient, logger, paymentDeadLetter)
+                .run[F](
+                  config,
+                  emailClient,
+                  logger,
+                  paymentDeadLetter,
+                  eventAge
+                )
             )
           )
         )

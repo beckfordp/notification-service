@@ -9,7 +9,7 @@ import io.circe.syntax._
 import munit.CatsEffectSuite
 import org.typelevel.log4cats.noop.NoOpLogger
 import org.typelevel.otel4s.metrics.Meter
-import purekafka.consumer.DeadLetter
+import purekafka.consumer.{DeadLetter, EventAge}
 import purekafka.resilience.{
   CircuitBreakerConfig,
   ResilienceConfig,
@@ -31,6 +31,8 @@ import scala.concurrent.duration._
 class OrderEventsConsumerSuite
     extends CatsEffectSuite
     with TestContainerForAll {
+
+  private val noEventAge: EventAge[IO] = (_, _, _) => IO.unit
 
   private def noOpDeadLetter: IO[DeadLetter[IO, String, String]] = {
     import org.typelevel.otel4s.metrics.Meter.Implicits.noop
@@ -141,7 +143,8 @@ class OrderEventsConsumerSuite
             config,
             fakeEmailClient(emailsRef),
             NoOpLogger[IO],
-            deadLetter
+            deadLetter,
+            noEventAge
           )
           .compile
           .drain,

@@ -93,7 +93,10 @@ class SentEmailStorePostgresSuite
       withContainers { postgres =>
         Migrations.run[IO](configFor(postgres)) *> truncate(postgres) *>
           SentEmailStore
-            .postgres[IO](configFor(postgres))
+            .postgres[IO](
+              configFor(postgres),
+              org.typelevel.otel4s.metrics.Meter.noop[IO]
+            )
             .use(store => body(store, postgres))
       }
     }
@@ -105,7 +108,8 @@ class SentEmailStorePostgresSuite
   test("ping is false when Postgres is unreachable") {
     SentEmailStore
       .postgres[IO](
-        PostgresConfig("localhost", 1, "notification", "nobody", "nothing")
+        PostgresConfig("localhost", 1, "notification", "nobody", "nothing"),
+        org.typelevel.otel4s.metrics.Meter.noop[IO]
       )
       .use(_.ping)
       .map(reachable => assert(!reachable))

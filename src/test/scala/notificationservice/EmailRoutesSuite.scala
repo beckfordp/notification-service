@@ -56,7 +56,10 @@ class EmailRoutesSuite extends CatsEffectSuite with TestContainerForAll {
     withContainers { postgres =>
       Migrations.run[IO](configFor(postgres)) *> truncate(postgres) *>
         SentEmailStore
-          .postgres[IO](configFor(postgres))
+          .postgres[IO](
+            configFor(postgres),
+            org.typelevel.otel4s.metrics.Meter.noop[IO]
+          )
           .use { store =>
             val logger = StructuredTestingLogger.impl[IO]()
             val routes = Http4sServerInterpreter[IO]().toRoutes(

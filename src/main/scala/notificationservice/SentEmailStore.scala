@@ -4,6 +4,8 @@ import cats.effect.std.Console
 import cats.effect.{Async, Resource, Sync}
 import cats.syntax.all._
 import fs2.io.net.Network
+import org.typelevel.otel4s.metrics.Meter
+import purerest.metrics.PoolMetrics
 import skunk.codec.all._
 import skunk.implicits._
 import skunk.{Codec, Session}
@@ -135,7 +137,8 @@ trait SentEmailStore[F[_]] {
 object SentEmailStore {
 
   def postgres[F[_]: Async: Console: Network](
-      config: PostgresConfig
+      config: PostgresConfig,
+      meter: Meter[F]
   ): Resource[F, SentEmailStore[F]] = {
     import org.typelevel.otel4s.metrics.Meter.Implicits.noop
     import org.typelevel.otel4s.trace.Tracer.Implicits.noop
@@ -146,6 +149,7 @@ object SentEmailStore {
       .withUserAndPassword(config.user, config.password)
       .withDatabase(config.database)
       .pooled(max = 10)
+      .evalMap(PoolMetrics.instrument(meter, "notification")(_))
       .map(pool => new PostgresSentEmailStore[F](pool))
   }
 

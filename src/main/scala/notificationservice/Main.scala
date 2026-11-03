@@ -28,7 +28,11 @@ object Main extends IOApp.Simple {
       )
     )
     _ <- Migrations.resource[IO](config.postgres)
-    telemetry <- Telemetry.resource[IO](config.serviceName, config.metricsPort)
+    telemetry <- Telemetry.resource[IO](
+      config.serviceName,
+      config.metricsPort,
+      Some(runtime.metrics)
+    )
     _ <- Resource.eval(
       telemetry.logger.info(
         Map(
@@ -37,7 +41,7 @@ object Main extends IOApp.Simple {
         )
       )("notification-service starting")
     )
-    emailStore <- SentEmailStore.postgres[IO](config.postgres)
+    emailStore <- SentEmailStore.postgres[IO](config.postgres, telemetry.meter)
     // Recipient resolution (ADM-3/ADR 0025): one shared client, an explicit
     // request timeout so a hung lookup cannot stall a consumer partition, and
     // the two typed, resilience-wrapped lookups.
@@ -53,11 +57,17 @@ object Main extends IOApp.Simple {
       telemetry
     )
     resolver = RecipientResolver[IO](userClient, orderClient)
-    emailClient = EmailClient.audited[IO](
-      emailStore,
-      EmailClient.logging[IO](telemetry.logger),
-      telemetry.logger,
-      resolver
+    emailClient <- Resource.eval(
+      EmailJourneyMetrics.instrument[IO](
+        EmailClient.audited[IO](
+          emailStore,
+          EmailClient.logging[IO](telemetry.logger),
+          telemetry.logger,
+          resolver
+        ),
+        telemetry.meter,
+        telemetry.logger
+      )
     )
     consumersFailed <- KafkaConsumers.resource[IO](
       config.kafka,

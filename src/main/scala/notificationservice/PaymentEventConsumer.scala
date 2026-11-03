@@ -6,7 +6,7 @@ import cats.syntax.all._
 import fs2.Stream
 import fs2.kafka._
 import org.typelevel.log4cats.StructuredLogger
-import purekafka.consumer.DeadLetter
+import purekafka.consumer.{DeadLetter, EventAge}
 
 /** Consumes `PaymentCaptured`/`PaymentFailed` on `payment-events` (US-19.4) and
   * sends the receipt / payment-problem email. Payment events carry no email or
@@ -17,12 +17,14 @@ object PaymentEventConsumer {
 
   val topic: String = "payment-events"
 
+  val groupId: String = "notification-service-payment-events"
+
   private def consumerSettings[F[_]: Async](
       config: KafkaConfig
   ): ConsumerSettings[F, Option[String], Option[String]] =
     ConsumerSettings[F, Option[String], Option[String]]
       .withBootstrapServers(config.bootstrapServers)
-      .withGroupId("notification-service-payment-events")
+      .withGroupId(groupId)
       .withAutoOffsetReset(AutoOffsetReset.Earliest)
 
   /** Cents to the platform's `$12.34` display convention (gshop's
@@ -138,12 +140,18 @@ object PaymentEventConsumer {
       config: KafkaConfig,
       emailClient: EmailClient[F],
       logger: StructuredLogger[F],
-      deadLetter: DeadLetter[F, String, String]
+      deadLetter: DeadLetter[F, String, String],
+      eventAge: EventAge[F]
   ): Stream[F, Unit] =
     KafkaConsumer
       .stream(consumerSettings[F](config))
       .subscribeTo(topic)
       .records
+      .evalTap(committable =>
+        committable.record.timestamp.createTime.traverse_(
+          eventAge.record(topic, groupId, _)
+        )
+      )
       .evalMap { committable =>
         handle(emailClient, logger, deadLetter)(
           committable.record.key.getOrElse(""),
