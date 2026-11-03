@@ -29,12 +29,12 @@ val testcontainersScalaVersion = "0.44.1"
 // purekafka.docs.SchemaRegistryWriter, Rework 5 step 3/ADR 0003).
 // v0.6.1: sends listed before receives (gluon TD-19.6).
 // v0.6.0: AsyncAPI 3.0 send/receive docs (gluon TD-19).
-val purekafkaVersion = "0.8.1"
+val purekafkaVersion = "0.8.2"
 // Pinned to match the purerestlib version this service is built against — see
 // README's "Consuming purerest as a dependency" section.
 // v0.7.3: purerest.docs.Docs.undocumented coverage check (gluon TD-20.1),
 // used by NotificationDocsSuite (gluon TD-20.9).
-val purerestlibVersion = "0.8.1"
+val purerestlibVersion = "0.8.2"
 
 // Skunk 1.0.0 depends on otel4s-core/-core-common/-core-metrics 0.16.0 (its own
 // optional tracing integration), which conflicts with purerestlib's otel4s 1.1.0
