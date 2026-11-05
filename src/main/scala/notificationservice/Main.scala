@@ -4,6 +4,7 @@ import cats.effect.{IO, IOApp, Resource}
 import com.comcast.ip4s._
 import org.http4s.ember.client.EmberClientBuilder
 import org.http4s.ember.server.EmberServerBuilder
+import purerest.tracing.ClientTracing
 
 import scala.concurrent.duration._
 
@@ -44,8 +45,13 @@ object Main extends IOApp.Simple {
     emailStore <- SentEmailStore.postgres[IO](config.postgres, telemetry.meter)
     // Recipient resolution (ADM-3/ADR 0025): one shared client, an explicit
     // request timeout so a hung lookup cannot stall a consumer partition, and
-    // the two typed, resilience-wrapped lookups.
-    httpClient <- EmberClientBuilder.default[IO].withTimeout(5.seconds).build
+    // the two typed, resilience-wrapped lookups. Each call gets a Client-kind
+    // span whose traceparent makes the callee join this trace (PERF-5.10).
+    httpClient <- EmberClientBuilder
+      .default[IO]
+      .withTimeout(5.seconds)
+      .build
+      .map(ClientTracing.middleware[IO](telemetry.tracer))
     userClient = UserClient.resilient[IO](
       httpClient,
       config.userClient,
