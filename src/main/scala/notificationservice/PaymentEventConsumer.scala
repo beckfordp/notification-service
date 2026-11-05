@@ -6,7 +6,9 @@ import cats.syntax.all._
 import fs2.Stream
 import fs2.kafka._
 import org.typelevel.log4cats.StructuredLogger
+import org.typelevel.otel4s.trace.Tracer
 import purekafka.consumer.{DeadLetter, EventAge}
+import purekafka.tracing.KafkaTracing
 
 /** Consumes `PaymentCaptured`/`PaymentFailed` on `payment-events` (US-19.4) and
   * sends the receipt / payment-problem email. Payment events carry no email or
@@ -141,7 +143,8 @@ object PaymentEventConsumer {
       emailClient: EmailClient[F],
       logger: StructuredLogger[F],
       deadLetter: DeadLetter[F, String, String],
-      eventAge: EventAge[F]
+      eventAge: EventAge[F],
+      tracer: Tracer[F]
   ): Stream[F, Unit] =
     KafkaConsumer
       .stream(consumerSettings[F](config))
@@ -153,9 +156,15 @@ object PaymentEventConsumer {
         )
       )
       .evalMap { committable =>
-        handle(emailClient, logger, deadLetter)(
-          committable.record.key.getOrElse(""),
-          committable.record.value
+        KafkaTracing.traced(tracer)(
+          committable.record.headers,
+          s"$topic process",
+          topic
+        )(
+          handle(emailClient, logger, deadLetter)(
+            committable.record.key.getOrElse(""),
+            committable.record.value
+          )
         ) *> committable.offset.commit
       }
 }

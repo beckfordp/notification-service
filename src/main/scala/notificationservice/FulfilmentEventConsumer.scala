@@ -6,7 +6,9 @@ import cats.syntax.all._
 import fs2.Stream
 import fs2.kafka._
 import org.typelevel.log4cats.StructuredLogger
+import org.typelevel.otel4s.trace.Tracer
 import purekafka.consumer.{DeadLetter, EventAge}
+import purekafka.tracing.KafkaTracing
 
 /** Consumes `DispatchConfirmed`/`DispatchFailed` on `fulfilment-events`
   * (US-17.5/18.4) and sends the shipped / dispatch-failed email. Fulfilment
@@ -130,7 +132,8 @@ object FulfilmentEventConsumer {
       emailClient: EmailClient[F],
       logger: StructuredLogger[F],
       deadLetter: DeadLetter[F, String, String],
-      eventAge: EventAge[F]
+      eventAge: EventAge[F],
+      tracer: Tracer[F]
   ): Stream[F, Unit] =
     KafkaConsumer
       .stream(consumerSettings[F](config))
@@ -142,9 +145,15 @@ object FulfilmentEventConsumer {
         )
       )
       .evalMap { committable =>
-        handle(emailClient, logger, deadLetter)(
-          committable.record.key.getOrElse(""),
-          committable.record.value
+        KafkaTracing.traced(tracer)(
+          committable.record.headers,
+          s"$topic process",
+          topic
+        )(
+          handle(emailClient, logger, deadLetter)(
+            committable.record.key.getOrElse(""),
+            committable.record.value
+          )
         ) *> committable.offset.commit
       }
 }

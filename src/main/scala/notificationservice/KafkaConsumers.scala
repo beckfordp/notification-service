@@ -7,6 +7,7 @@ import fs2.Stream
 import fs2.kafka.ProducerSettings
 import org.typelevel.log4cats.StructuredLogger
 import org.typelevel.otel4s.metrics.Meter
+import org.typelevel.otel4s.trace.Tracer
 import purekafka.consumer.{DeadLetter, EventAge, StreamSupervisor}
 
 /** Wires every consumer with `purekafka`'s `StreamSupervisor`
@@ -25,7 +26,8 @@ object KafkaConsumers {
       config: KafkaConfig,
       emailClient: EmailClient[F],
       logger: StructuredLogger[F],
-      meter: Meter[F]
+      meter: Meter[F],
+      tracer: Tracer[F]
   ): Stream[F, Unit] = {
     def dlqProducerSettings: ProducerSettings[F, String, String] =
       ProducerSettings[F, String, String]
@@ -65,7 +67,14 @@ object KafkaConsumers {
         .supervise[F, Unit](config.streamSupervisor)(logger)(meter)(
           Async[F].pure(
             OrderEventsConsumer
-              .run[F](config, emailClient, logger, orderDeadLetter, eventAge)
+              .run[F](
+                config,
+                emailClient,
+                logger,
+                orderDeadLetter,
+                eventAge,
+                tracer
+              )
           )
         )
         .merge(
@@ -74,7 +83,14 @@ object KafkaConsumers {
           )(meter)(
             Async[F].pure(
               UserRegisteredConsumer
-                .run[F](config, emailClient, logger, userDeadLetter, eventAge)
+                .run[F](
+                  config,
+                  emailClient,
+                  logger,
+                  userDeadLetter,
+                  eventAge,
+                  tracer
+                )
             )
           )
         )
@@ -89,7 +105,8 @@ object KafkaConsumers {
                   emailClient,
                   logger,
                   fulfilmentDeadLetter,
-                  eventAge
+                  eventAge,
+                  tracer
                 )
             )
           )
@@ -105,7 +122,8 @@ object KafkaConsumers {
                   emailClient,
                   logger,
                   paymentDeadLetter,
-                  eventAge
+                  eventAge,
+                  tracer
                 )
             )
           )
@@ -148,7 +166,11 @@ object KafkaConsumers {
       config: KafkaConfig,
       emailClient: EmailClient[F],
       logger: StructuredLogger[F],
-      meter: Meter[F]
+      meter: Meter[F],
+      tracer: Tracer[F]
   ): Resource[F, F[Unit]] =
-    watched[F](supervised[F](config, emailClient, logger, meter), logger)
+    watched[F](
+      supervised[F](config, emailClient, logger, meter, tracer),
+      logger
+    )
 }

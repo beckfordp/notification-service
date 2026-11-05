@@ -8,6 +8,7 @@ import io.circe.syntax._
 import munit.CatsEffectSuite
 import org.typelevel.log4cats.testing.StructuredTestingLogger
 import org.typelevel.log4cats.testing.StructuredTestingLogger.INFO
+import org.typelevel.otel4s.trace.Tracer
 import purerest.metrics.Metrics
 
 import java.time.Instant
@@ -166,7 +167,8 @@ class KafkaConsumersSuite extends CatsEffectSuite with TestContainerForAll {
                   config,
                   emailClient,
                   testLogger,
-                  testMeter.meter
+                  testMeter.meter,
+                  Tracer.noop[IO]
                 )
                 .compile
                 .drain

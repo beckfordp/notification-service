@@ -9,12 +9,14 @@ import io.circe.syntax._
 import munit.CatsEffectSuite
 import org.typelevel.log4cats.noop.NoOpLogger
 import org.typelevel.otel4s.metrics.Meter
+import org.typelevel.otel4s.trace.Tracer
 import purekafka.consumer.{DeadLetter, EventAge}
 import purekafka.resilience.{
   CircuitBreakerConfig,
   ResilienceConfig,
   RetryConfig
 }
+import purerest.tracing.Tracing
 
 import java.time.Instant
 import java.util.UUID
@@ -144,7 +146,8 @@ class OrderEventsConsumerSuite
             fakeEmailClient(emailsRef),
             NoOpLogger[IO],
             deadLetter,
-            noEventAge
+            noEventAge,
+            Tracer.noop[IO]
           )
           .compile
           .drain,
@@ -268,6 +271,73 @@ class OrderEventsConsumerSuite
       } yield {
         assertEquals(email.to, "cust-5")
         assert(email.subject.contains("confirmed"))
+      }
+    }
+  }
+
+  test(
+    "PERF-5.5: a record's traceparent header becomes the parent of its order-events process span"
+  ) {
+    withContainers { kafka =>
+      val config = configFor(kafka)
+      val traceId = "4bf92f3577b34da6a3ce929d0e0e4736"
+      val parentSpanId = "00f067aa0ba902b7"
+      Tracing.test[IO]("notification-consumer-tracing").use { testTracer =>
+        val consumed = testTracer.finishedSpans.map(
+          _.filter(s =>
+            s.getName == "order-events process" && s.getTraceId == traceId
+          )
+        )
+        for {
+          emailsRef <- Ref.of[IO, List[SentEmail]](Nil)
+          deadLetter <- noOpDeadLetter
+          _ <- KafkaProducer
+            .resource(
+              ProducerSettings[IO, String, String]
+                .withBootstrapServers(config.bootstrapServers)
+            )
+            .use(
+              _.produceOne_(
+                ProducerRecord(
+                  OrderEventsConsumer.topic,
+                  "order-traced",
+                  envelopeJson(
+                    "OrderReserved",
+                    "order-traced",
+                    Json.obj("orderId" -> Json.fromString("order-traced"))
+                  )
+                ).withHeaders(
+                  Headers(
+                    Header("traceparent", s"00-$traceId-$parentSpanId-01")
+                  )
+                )
+              ).flatten.void
+            )
+          spans <- OrderEventsConsumer
+            .run[IO](
+              config,
+              fakeEmailClient(emailsRef),
+              NoOpLogger[IO],
+              deadLetter,
+              noEventAge,
+              testTracer.tracer
+            )
+            .compile
+            .drain
+            .background
+            .use(_ =>
+              (IO.sleep(200.millis) *> consumed)
+                .iterateUntil(_.nonEmpty)
+                .timeout(30.seconds)
+            )
+        } yield {
+          val span = spans.head
+          assertEquals(
+            span.getKind,
+            io.opentelemetry.api.trace.SpanKind.CONSUMER
+          )
+          assertEquals(span.getParentSpanContext.getSpanId, parentSpanId)
+        }
       }
     }
   }

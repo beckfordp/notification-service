@@ -6,7 +6,9 @@ import cats.syntax.all._
 import fs2.Stream
 import fs2.kafka._
 import org.typelevel.log4cats.StructuredLogger
+import org.typelevel.otel4s.trace.Tracer
 import purekafka.consumer.{DeadLetter, EventAge}
+import purekafka.tracing.KafkaTracing
 
 /** Consumes order-service's per-outcome lifecycle events on `order-events`
   * (`OrderConfirmed`/`OrderPaymentFailed`/`OrderCancelled`, TD-15) and sends
@@ -156,7 +158,8 @@ object OrderEventsConsumer {
       emailClient: EmailClient[F],
       logger: StructuredLogger[F],
       deadLetter: DeadLetter[F, String, String],
-      eventAge: EventAge[F]
+      eventAge: EventAge[F],
+      tracer: Tracer[F]
   ): Stream[F, Unit] =
     KafkaConsumer
       .stream(consumerSettings[F](config))
@@ -168,9 +171,15 @@ object OrderEventsConsumer {
         )
       )
       .evalMap { committable =>
-        handle(emailClient, logger, deadLetter)(
-          committable.record.key.getOrElse(""),
-          committable.record.value
+        KafkaTracing.traced(tracer)(
+          committable.record.headers,
+          s"$topic process",
+          topic
+        )(
+          handle(emailClient, logger, deadLetter)(
+            committable.record.key.getOrElse(""),
+            committable.record.value
+          )
         ) *> committable.offset.commit
       }
 }
