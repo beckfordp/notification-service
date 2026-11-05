@@ -45,7 +45,6 @@ object EmailJourneyMetrics {
                   Milestones.log(logger)(
                     "order_notified",
                     orderId,
-                    None,
                     Map("event_type" -> message.eventType)
                   )
                 )
