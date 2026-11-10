@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: MIT
 # Live verification for track sent-email-audit_20261102 (ADM-2).
 #
 # Starts throwaway Postgres and Kafka containers plus the service itself (host

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 package notificationservice
 
 import cats.{Applicative, Monad}

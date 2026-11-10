@@ -1,3 +1,4 @@
+-- SPDX-License-Identifier: MIT
 -- Sent-email audit store (ADM-2). One row per handled event, keyed by the
 -- envelope eventId so a redelivery never sends the same email twice. This is an
 -- audit/send queue written by the sending path, not a Kafka outbox.

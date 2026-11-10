@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 package notificationservice
 
 import io.circe.parser.decode

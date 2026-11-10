@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: MIT
+
 services:
   # Single-node, KRaft-mode broker (no separate Zookeeper container needed) -
   # local-dev-only, mirrors payment-service's own docker-compose.yml service

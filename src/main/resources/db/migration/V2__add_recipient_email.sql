@@ -1,3 +1,4 @@
+-- SPDX-License-Identifier: MIT
 -- Recipient resolution (ADM-3/ADR 0025). recipient_type/recipient_key keep
 -- recording what the event identified; recipient_email records the resolved
 -- destination address. Rows whose key was already an address are backfilled;

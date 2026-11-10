@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 package notificationservice.examples
 
 import cats.effect.{IO, Ref, Resource}

@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: MIT
 # Live verification for track payment-emails_20261028 (US-19.4).
 # Synthetic PaymentCaptured/PaymentFailed and a real dispatched order must
 # each produce the matching stub email log. Cleans up test data.

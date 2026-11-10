@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: MIT
+
 set -euo pipefail
 
 # Verifies Phase 2 of track strip-crud_20261002 (remove Postgres/CRUD scaffold):

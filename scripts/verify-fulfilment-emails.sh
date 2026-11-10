@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: MIT
 # Live verification for track fulfilment-emails_20261028 (US-17.5/18.4).
 # Synthetic DispatchConfirmed/DispatchFailed and a real dispatched order must
 # each produce the matching stub email log. Cleans up test data.

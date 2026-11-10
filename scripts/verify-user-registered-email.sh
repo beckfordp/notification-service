@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: MIT
 # Live verification for track welcome-email_20261028 (US-16.4).
 # 1) publishes a synthetic UserRegistered envelope to user-events and asserts
 #    notification-service logs the welcome email;
